@@ -1,3 +1,4 @@
-void CrearVenta(String cliente, List productos) {}
-void ListarVentas() {}
-void DetalleVenta(String codigoVenta) {}
+const url = '192.168.1.3:7177';
+void crearVenta(String cliente, List productos) {}
+void listarVentas() {}
+void detalleVenta(String codigoVenta) {}

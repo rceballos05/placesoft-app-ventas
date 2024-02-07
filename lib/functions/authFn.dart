@@ -4,18 +4,17 @@ import 'package:app_ventas/models/VendedorApp.dart';
 import 'package:http/http.dart' as http;
 
 const url = '192.168.1.3:7177';
-Future<bool> IniciarSesion(String rut, String pass) async {
-  print('rut: ' + rut);
-  print('pass: ' + pass);
-  var response = await getPrefijo(rut);
-  var login = false;
-  if (response != null) {
-    var data = await getPass(response.prefijo, pass, rut);
-    if (data == true) {
-      login = true;
-    }
-  }
-  return login;
+Future<bool> iniciarSesion(String rut, String pass) async {
+  // var response = await getPrefijo(rut);
+  // var login = false;
+  // if (response != null) {
+  //   var data = await getPass(response.prefijo, pass, rut);
+  //   if (data == true) {
+  //     login = true;
+  //   }
+  // }
+  // return login;
+  return false;
 }
 
 Future<VendedorAppModel?> getPrefijo(String rut) async {
@@ -29,10 +28,10 @@ Future<VendedorAppModel?> getPrefijo(String rut) async {
     print(error);
   }
   if (rsp['code'] == 200) {
-    VendedorAppModel vendedorApp = new VendedorAppModel(
-        rut: rsp['items'][0]['rut'], prefijo: rsp['items'][0]['prefijo']);
+    // VendedorAppModel vendedorApp = new VendedorAppModel(
+    //     rut: rsp['items'][0]['rut'], prefijos: rsp['items'][0]['prefijo']);
 
-    return vendedorApp;
+    return null;
   } else {
     return null;
   }

@@ -8,7 +8,6 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final bool isSmallScreen = MediaQuery.of(context).size.width < 600;
     return Scaffold(
         body: Center(
@@ -170,14 +169,14 @@ class __FormContentState extends State<_FormContent> {
                 ),
                 onPressed: () async {
                   if (_formKey.currentState?.validate() ?? false) {
-                    var login = await IniciarSesion(
-                        rutController.text, passController.text);
-                    if (login == false) {
-                      // ignore: use_build_context_synchronously
-                      _mostrarAlertaErrorLogin(context);
-                    } else {
-                      Navigator.pushNamed(context, HomePage.id);
-                    }
+                    // var login = await iniciarSesion(
+                    //     rutController.text, passController.text);
+                    // if (login == false) {
+                    //   // ignore: use_build_context_synchronously
+                    //   _mostrarAlertaErrorLogin(context);
+                    // } else {
+                    //   Navigator.pushNamed(context, HomeAppBar.id);
+                    // }
                   }
                 },
               ),

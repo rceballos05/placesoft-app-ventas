@@ -1,6 +1,11 @@
 class VendedorAppModel {
   String rut;
-  String prefijo;
+  List<Prefijo> prefijos;
 
-  VendedorAppModel({required this.rut, required this.prefijo});
+  VendedorAppModel({required this.rut, required this.prefijos});
+}
+
+class Prefijo {
+  String? nombre;
+  String? numero;
 }
