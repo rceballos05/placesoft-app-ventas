@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:app_ventas/models/VendedorApp.dart';
+import 'package:app_ventas/models/vendedor_app.dart';
 import 'package:http/http.dart' as http;
 
 const url = '192.168.1.3:7177';

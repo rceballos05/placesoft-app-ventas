@@ -1,4 +1,4 @@
-import 'package:app_ventas/pages/cartPage.dart';
+import 'package:app_ventas/pages/cart_page.dart';
 import 'package:app_ventas/pages/producto_detalle_page.dart';
 import 'package:flutter/material.dart';
 import 'package:app_ventas/pages/home_page.dart';
