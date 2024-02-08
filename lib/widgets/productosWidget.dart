@@ -11,7 +11,7 @@ class ProductWidget extends StatelessWidget {
       shrinkWrap: true,
       children: [
         Container(
-          padding: EdgeInsets.only(left: 15, right: 15, top: 10),
+          padding: EdgeInsets.only(left: 10, right: 10, top: 10),
           margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
           decoration: BoxDecoration(
             color: Colors.white,

@@ -6,8 +6,8 @@ class CartBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return BottomAppBar(
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        height: 120,
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        height: 170,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -18,13 +18,13 @@ class CartBottomNavBar extends StatelessWidget {
                   "Total",
                   style: TextStyle(
                       color: Colors.black,
-                      fontSize: 22,
+                      fontSize: 19,
                       fontWeight: FontWeight.bold),
                 ),
                 Text(
                   "\$21000",
                   style: TextStyle(
-                      fontSize: 25,
+                      fontSize: 19,
                       fontWeight: FontWeight.bold,
                       color: Colors.black),
                 )

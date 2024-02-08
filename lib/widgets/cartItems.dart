@@ -8,7 +8,7 @@ class CartItems extends StatelessWidget {
       children: [
         Container(
           height: 110,
-          margin: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          margin: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -23,8 +23,8 @@ class CartItems extends StatelessWidget {
                 onChanged: (index) {},
               ),
               Container(
-                height: 70,
-                width: 70,
+                height: 50,
+                width: 50,
                 margin: EdgeInsets.only(right: 15),
                 child: Image.network("https://picsum.photos/275/350"),
               ),
