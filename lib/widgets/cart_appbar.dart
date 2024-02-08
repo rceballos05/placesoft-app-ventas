@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class CartAppBar extends StatelessWidget {
@@ -8,7 +7,7 @@ class CartAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.all(25),
+      padding: const EdgeInsets.all(25),
       child: Row(
         children: [
           InkWell(
@@ -17,14 +16,14 @@ class CartAppBar extends StatelessWidget {
               onPressed: () {
                 Navigator.pop(context);
               },
-              icon: Icon(
+              icon: const Icon(
                 Icons.arrow_back,
                 size: 30,
                 color: Colors.black,
               ),
             ),
           ),
-          Padding(
+          const Padding(
             padding: EdgeInsets.only(left: 20),
             child: Text(
               "Carro de compras",
@@ -35,8 +34,8 @@ class CartAppBar extends StatelessWidget {
               ),
             ),
           ),
-          Spacer(),
-          Icon(
+          const Spacer(),
+          const Icon(
             Icons.more_vert,
             size: 30,
             color: Colors.black,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 class CategoriasWidget extends StatelessWidget {
+  const CategoriasWidget({super.key});
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -9,8 +10,8 @@ class CategoriasWidget extends StatelessWidget {
       child: Row(children: [
         for (int i = 1; i < 8; i++)
           Container(
-            margin: EdgeInsets.symmetric(horizontal: 8.0),
-            padding: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+            margin: const EdgeInsets.symmetric(horizontal: 8.0),
+            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -22,7 +23,7 @@ class CategoriasWidget extends StatelessWidget {
                 width: 40,
                 height: 40,
               ),
-              Text(
+              const Text(
                 "categoria 1",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,

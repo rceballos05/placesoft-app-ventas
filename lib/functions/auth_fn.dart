@@ -22,7 +22,7 @@ Future<VendedorAppModel?> getPrefijo(String rut) async {
 
   try {
     final response =
-        await http.get(Uri.http(url, '/api/Login/' + rut), headers: {});
+        await http.get(Uri.http(url, '/api/Login/$rut'), headers: {});
     rsp = jsonDecode(response.body);
   } catch (error) {
     print(error);
@@ -40,8 +40,8 @@ Future<VendedorAppModel?> getPrefijo(String rut) async {
 Future<bool> getPass(String prefijo, String pass, String rut) async {
   var data;
   try {
-    final response = await http.get(
-        Uri.http(url, 'api/Login/aalegria/iniciar-sesion/' + rut + '/' + pass));
+    final response = await http
+        .get(Uri.http(url, 'api/Login/aalegria/iniciar-sesion/$rut/$pass'));
     data = jsonDecode(response.body);
   } catch (error) {
     print(error);

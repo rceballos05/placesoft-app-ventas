@@ -1,5 +1,5 @@
-import 'package:app_ventas/widgets/DetalleProductoBottomNavBar.dart';
-import 'package:app_ventas/widgets/ItemAppBar.dart';
+import 'package:app_ventas/widgets/detalle_producto_bottom.dart';
+import 'package:app_ventas/widgets/items_appbar.dart';
 import 'package:clippy_flutter/arc.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -11,12 +11,12 @@ class ProductoDetalle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFEDECF2),
+      backgroundColor: const Color(0xFFEDECF2),
       body: ListView(
         children: [
-          ItemAppBar(),
+          const ItemAppBar(),
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Image.network(
               "https://picsum.photos/275/350",
               height: 300,
@@ -30,10 +30,10 @@ class ProductoDetalle extends StatelessWidget {
               width: double.infinity,
               color: Colors.white,
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
-                    Padding(
+                    const Padding(
                       padding: EdgeInsets.only(
                         top: 45,
                         bottom: 20,
@@ -50,14 +50,14 @@ class ProductoDetalle extends StatelessWidget {
                       ),
                     ),
                     Padding(
-                      padding: EdgeInsets.only(
+                      padding: const EdgeInsets.only(
                         top: 5,
                         bottom: 10,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
+                          const Text(
                             "\$250",
                             style: TextStyle(
                               fontSize: 20,
@@ -67,11 +67,11 @@ class ProductoDetalle extends StatelessWidget {
                           Row(
                             children: [
                               Container(
-                                padding: EdgeInsets.all(5),
+                                padding: const EdgeInsets.all(5),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
+                                  boxShadow: const [
                                     BoxShadow(
                                       color: Colors.grey,
                                       spreadRadius: 3,
@@ -80,14 +80,15 @@ class ProductoDetalle extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                child: Icon(
+                                child: const Icon(
                                   CupertinoIcons.minus,
                                   size: 18,
                                 ),
                               ),
                               Container(
-                                margin: EdgeInsets.symmetric(horizontal: 10),
-                                child: Text(
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 10),
+                                child: const Text(
                                   "1",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
@@ -96,11 +97,11 @@ class ProductoDetalle extends StatelessWidget {
                                 ),
                               ),
                               Container(
-                                padding: EdgeInsets.all(5),
+                                padding: const EdgeInsets.all(5),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
+                                  boxShadow: const [
                                     BoxShadow(
                                       color: Colors.grey,
                                       spreadRadius: 3,
@@ -109,7 +110,7 @@ class ProductoDetalle extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                child: Icon(
+                                child: const Icon(
                                   CupertinoIcons.plus,
                                   size: 18,
                                 ),
@@ -119,7 +120,7 @@ class ProductoDetalle extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Padding(
+                    const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12),
                       child: Text(
                         "descripcion producto",
@@ -137,7 +138,7 @@ class ProductoDetalle extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: DetalleProductoBottomNavBar(),
+      bottomNavigationBar: const DetalleProductoBottomNavBar(),
     );
   }
 }

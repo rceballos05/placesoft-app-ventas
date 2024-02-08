@@ -1,6 +1,6 @@
-import 'package:app_ventas/widgets/CartBottomNavBar.dart';
-import 'package:app_ventas/widgets/cartAppBar.dart';
-import 'package:app_ventas/widgets/cartItems.dart';
+import 'package:app_ventas/widgets/cart_bottom_navbar.dart';
+import 'package:app_ventas/widgets/cart_AppBar.dart';
+import 'package:app_ventas/widgets/cart_items.dart';
 import 'package:flutter/material.dart';
 
 class CartPage extends StatelessWidget {
@@ -12,11 +12,11 @@ class CartPage extends StatelessWidget {
     return Scaffold(
       body: ListView(
         children: [
-          CartAppBar(),
+          const CartAppBar(),
           Container(
             height: 600,
-            padding: EdgeInsets.only(top: 15),
-            decoration: BoxDecoration(
+            padding: const EdgeInsets.only(top: 15),
+            decoration: const BoxDecoration(
               color: Color(0xFFEDECF2),
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(35),
@@ -24,26 +24,27 @@ class CartPage extends StatelessWidget {
               ),
             ),
             child: Column(children: [
-              CartItems(),
+              const CartItems(),
               Container(
                 // decoration: BoxDecoration(
                 //   borderRadius: BorderRadius.circular(10),
                 // ),
-                margin: EdgeInsets.symmetric(vertical: 20, horizontal: 15),
-                padding: EdgeInsets.all(10),
+                margin:
+                    const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
+                padding: const EdgeInsets.all(10),
                 child: Row(
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: Color(0xFF4C53A5),
+                        color: const Color(0xFF4C53A5),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.add,
                         color: Colors.white,
                       ),
                     ),
-                    Padding(
+                    const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
                         "Agregar cupon de descuento",
@@ -60,7 +61,7 @@ class CartPage extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: CartBottomNavBar(),
+      bottomNavigationBar: const CartBottomNavBar(),
     );
   }
 }

@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:badges/badges.dart' as badges;
 
 class HomeAppBar extends StatelessWidget {
+  const HomeAppBar({super.key});
+  @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.all(25),
+      padding: const EdgeInsets.all(25),
       child: Row(children: [
-        Icon(
+        const Icon(
           Icons.sort,
           size: 30,
           color: Colors.black,
         ),
-        Padding(
+        const Padding(
           padding: EdgeInsets.only(left: 20),
           child: Text(
             "Ventas en terreno",
@@ -20,11 +22,11 @@ class HomeAppBar extends StatelessWidget {
                 fontSize: 23, fontWeight: FontWeight.bold, color: Colors.black),
           ),
         ),
-        Spacer(),
+        const Spacer(),
         badges.Badge(
-          badgeStyle: badges.BadgeStyle(badgeColor: Colors.red),
+          badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
           position: badges.BadgePosition.topEnd(top: 0, end: 3),
-          badgeContent: Text(
+          badgeContent: const Text(
             "3",
             style: TextStyle(color: Colors.white),
           ),
@@ -32,7 +34,7 @@ class HomeAppBar extends StatelessWidget {
             onTap: () {
               Navigator.pushNamed(context, "cartPage");
             },
-            child: Icon(
+            child: const Icon(
               Icons.shopping_bag_outlined,
               size: 40,
               color: Colors.black,

@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 class DetalleProductoBottomNavBar extends StatelessWidget {
+  const DetalleProductoBottomNavBar({super.key});
   @override
   Widget build(BuildContext context) {
     return BottomAppBar(
       child: Container(
         height: 70,
-        padding: EdgeInsets.symmetric(horizontal: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -17,24 +18,24 @@ class DetalleProductoBottomNavBar extends StatelessWidget {
               color: Colors.grey.withOpacity(0.5),
               spreadRadius: 3,
               blurRadius: 10,
-              offset: Offset(0, 3),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
+            const Text(
               "Total",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             ElevatedButton.icon(
               onPressed: () {},
-              icon: Icon(
+              icon: const Icon(
                 CupertinoIcons.cart_badge_plus,
                 color: Colors.white,
               ),
-              label: Text(
+              label: const Text(
                 "Añadir al carro",
                 style: TextStyle(
                   fontSize: 16,
@@ -43,9 +44,11 @@ class DetalleProductoBottomNavBar extends StatelessWidget {
                 ),
               ),
               style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all(Color(0xFF4C53A5)),
+                  backgroundColor: MaterialStateProperty.all(
+                    const Color(0xFF4C53A5),
+                  ),
                   padding: MaterialStateProperty.all(
-                    EdgeInsets.symmetric(vertical: 13, horizontal: 15),
+                    const EdgeInsets.symmetric(vertical: 13, horizontal: 15),
                   ),
                   shape: MaterialStateProperty.all<RoundedRectangleBorder>(
                     RoundedRectangleBorder(

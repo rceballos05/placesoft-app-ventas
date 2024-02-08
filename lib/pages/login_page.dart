@@ -1,5 +1,5 @@
-import 'package:app_ventas/functions/AuthFn.dart';
-import 'package:app_ventas/pages/home_page.dart';
+//import 'package:app_ventas/functions/AuthFn.dart';
+//import 'package:app_ventas/pages/home_page.dart';
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatelessWidget {
@@ -12,9 +12,9 @@ class LoginPage extends StatelessWidget {
     return Scaffold(
         body: Center(
             child: isSmallScreen
-                ? Column(
+                ? const Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       _Logo(),
                       _FormContent(),
                     ],
@@ -22,8 +22,8 @@ class LoginPage extends StatelessWidget {
                 : Container(
                     padding: const EdgeInsets.all(32.0),
                     constraints: const BoxConstraints(maxWidth: 800),
-                    child: Row(
-                      children: const [
+                    child: const Row(
+                      children: [
                         Expanded(child: _Logo()),
                         Expanded(
                           child: Center(child: _FormContent()),
@@ -44,7 +44,7 @@ class _Logo extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Image(
+        const Image(
           image: AssetImage("assets/img/logo-p.png"),
         ),
         // FlutterLogo(size: isSmallScreen ? 100 : 200),
@@ -191,15 +191,15 @@ class __FormContentState extends State<_FormContent> {
     showDialog(
         barrierDismissible: false,
         context: context,
-        builder: (_) => new AlertDialog(
-              title: Text('Error'),
-              content: Text('Usuario y/o contraseña invalidos'),
+        builder: (_) => AlertDialog(
+              title: const Text('Error'),
+              content: const Text('Usuario y/o contraseña invalidos'),
               actions: [
                 TextButton(
                     onPressed: () {
                       Navigator.pop(context);
                     },
-                    child: Text('Ok'))
+                    child: const Text('Ok'))
               ],
             ));
   }

@@ -2,14 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class CartItems extends StatelessWidget {
+  const CartItems({super.key});
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Container(
           height: 110,
-          margin: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          padding: EdgeInsets.all(10),
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(10),
@@ -19,16 +20,16 @@ class CartItems extends StatelessWidget {
               Radio(
                 value: "",
                 groupValue: "",
-                activeColor: Color(0xFF4C53A5),
+                activeColor: const Color(0xFF4C53A5),
                 onChanged: (index) {},
               ),
               Container(
                 height: 50,
                 width: 50,
-                margin: EdgeInsets.only(right: 15),
+                margin: const EdgeInsets.only(right: 15),
                 child: Image.network("https://picsum.photos/275/350"),
               ),
-              Padding(
+              const Padding(
                 padding: EdgeInsets.symmetric(vertical: 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,21 +54,21 @@ class CartItems extends StatelessWidget {
                   ],
                 ),
               ),
-              Spacer(),
+              const Spacer(),
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 5),
+                padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.delete,
                       color: Colors.red,
                     ),
                     Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius:
@@ -79,14 +80,14 @@ class CartItems extends StatelessWidget {
                                   blurRadius: 10,
                                 ),
                               ]),
-                          child: Icon(
+                          child: const Icon(
                             CupertinoIcons.plus,
                             size: 18,
                           ),
                         ),
                         Container(
-                          margin: EdgeInsets.symmetric(horizontal: 10),
-                          child: Text(
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                          child: const Text(
                             "10",
                             style: TextStyle(
                               fontSize: 16,
@@ -96,7 +97,7 @@ class CartItems extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius:
@@ -108,7 +109,7 @@ class CartItems extends StatelessWidget {
                                   blurRadius: 10,
                                 ),
                               ]),
-                          child: Icon(
+                          child: const Icon(
                             CupertinoIcons.minus,
                             size: 18,
                           ),

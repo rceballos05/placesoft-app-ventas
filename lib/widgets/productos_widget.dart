@@ -2,17 +2,18 @@ import 'package:app_ventas/pages/producto_detalle_page.dart';
 import 'package:flutter/material.dart';
 
 class ProductWidget extends StatelessWidget {
+  const ProductWidget({super.key});
   @override
   Widget build(BuildContext context) {
     return GridView.count(
       childAspectRatio: 0.68,
-      physics: NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
       shrinkWrap: true,
       children: [
         Container(
-          padding: EdgeInsets.only(left: 10, right: 10, top: 10),
-          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+          padding: const EdgeInsets.only(left: 10, right: 10, top: 10),
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -22,12 +23,12 @@ class ProductWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: EdgeInsets.all(5),
+                  padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     color: Colors.black,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(
+                  child: const Text(
                     "-50%",
                     style: TextStyle(
                       fontSize: 14,
@@ -36,7 +37,7 @@ class ProductWidget extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(
+                const Icon(
                   Icons.favorite_border,
                   color: Colors.red,
                 ),
@@ -47,16 +48,16 @@ class ProductWidget extends StatelessWidget {
                 Navigator.pushNamed(context, ProductoDetalle.id);
               },
               child: Container(
-                margin: EdgeInsets.all(10),
-                child: Image.network("https://picsum.photos/275/350"),
+                margin: const EdgeInsets.all(10),
                 height: 120,
                 width: 120,
+                child: Image.network("https://picsum.photos/275/350"),
               ),
             ),
             Container(
-              padding: EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 8),
               alignment: Alignment.centerLeft,
-              child: Text(
+              child: const Text(
                 "Titulo producto 1",
                 style: TextStyle(
                   fontSize: 18,
@@ -67,7 +68,7 @@ class ProductWidget extends StatelessWidget {
             ),
             Container(
               alignment: Alignment.centerLeft,
-              child: Text(
+              child: const Text(
                 "Descripcion producto 1",
                 style: TextStyle(
                   fontSize: 15,
@@ -75,7 +76,7 @@ class ProductWidget extends StatelessWidget {
                 ),
               ),
             ),
-            Padding(
+            const Padding(
               padding: EdgeInsets.symmetric(vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
