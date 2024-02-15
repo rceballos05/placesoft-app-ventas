@@ -1,3 +1,4 @@
+import 'package:app_ventas/pages/cart_page.dart';
 import 'package:flutter/material.dart';
 import 'package:badges/badges.dart' as badges;
 
@@ -32,7 +33,7 @@ class HomeAppBar extends StatelessWidget {
           ),
           child: InkWell(
             onTap: () {
-              Navigator.pushNamed(context, "cartPage");
+              Navigator.pushNamed(context, CartPage.id);
             },
             child: const Icon(
               Icons.shopping_bag_outlined,

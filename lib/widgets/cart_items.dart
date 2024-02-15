@@ -45,6 +45,7 @@ class CartItems extends StatelessWidget {
                     ),
                     Text(
                       "\$123123",
+                      key: Key("textCantidad"),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -109,9 +110,12 @@ class CartItems extends StatelessWidget {
                                   blurRadius: 10,
                                 ),
                               ]),
-                          child: const Icon(
-                            CupertinoIcons.minus,
-                            size: 18,
+                          child: IconButton(
+                            icon: Icon(
+                              CupertinoIcons.minus,
+                              size: 18,
+                            ),
+                            onPressed: () {},
                           ),
                         ),
                       ],

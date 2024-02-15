@@ -1,5 +1,5 @@
-//import 'package:app_ventas/functions/AuthFn.dart';
-//import 'package:app_ventas/pages/home_page.dart';
+import 'package:app_ventas/functions/auth_fn.dart';
+import 'package:app_ventas/pages/home_page.dart';
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatelessWidget {
@@ -169,14 +169,14 @@ class __FormContentState extends State<_FormContent> {
                 ),
                 onPressed: () async {
                   if (_formKey.currentState?.validate() ?? false) {
-                    // var login = await iniciarSesion(
-                    //     rutController.text, passController.text);
-                    // if (login == false) {
-                    //   // ignore: use_build_context_synchronously
-                    //   _mostrarAlertaErrorLogin(context);
-                    // } else {
-                    //   Navigator.pushNamed(context, HomeAppBar.id);
-                    // }
+                    var login = await iniciarSesion(
+                        rutController.text, passController.text);
+                    if (login == false) {
+                      // ignore: use_build_context_synchronously
+                      _mostrarAlertaErrorLogin(context);
+                    } else {
+                      Navigator.pushNamed(context, HomePage.id);
+                    }
                   }
                 },
               ),

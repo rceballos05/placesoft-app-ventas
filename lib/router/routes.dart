@@ -1,3 +1,4 @@
+import 'package:app_ventas/pages/busqueda_cliente.dart';
 import 'package:app_ventas/pages/cart_page.dart';
 import 'package:app_ventas/pages/producto_detalle_page.dart';
 import 'package:flutter/material.dart';
@@ -9,4 +10,5 @@ var customRoutes = <String, WidgetBuilder>{
   HomePage.id: (_) => const HomePage(),
   ProductoDetalle.id: (_) => const ProductoDetalle(),
   CartPage.id: (_) => const CartPage(),
+  BusquedaCliente.id: (_) => const BusquedaCliente(),
 };

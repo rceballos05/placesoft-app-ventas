@@ -1,3 +1,6 @@
+import 'package:app_ventas/pages/busqueda_cliente.dart';
+import 'package:app_ventas/pages/busqueda_page.dart';
+import 'package:app_ventas/pages/cart_page.dart';
 import 'package:app_ventas/widgets/categorias_widget.dart';
 import 'package:app_ventas/widgets/home_appbar.dart';
 import 'package:app_ventas/widgets/productos_widget.dart';
@@ -84,7 +87,15 @@ class HomePage extends StatelessWidget {
         )
       ]),
       bottomNavigationBar: CurvedNavigationBar(
-          onTap: (index) {},
+          onTap: (index) {
+            if (index == 0) {
+              Navigator.pushNamed(context, HomePage.id);
+            } else if (index == 1) {
+              Navigator.pushNamed(context, CartPage.id);
+            } else if (index == 2) {
+              Navigator.pushNamed(context, BusquedaCliente.id);
+            }
+          },
           backgroundColor: Colors.transparent,
           height: 60,
           color: const Color(0xFF4C53A5),
@@ -100,7 +111,7 @@ class HomePage extends StatelessWidget {
               color: Colors.white,
             ),
             Icon(
-              Icons.list,
+              Icons.person_search,
               size: 30,
               color: Colors.white,
             )

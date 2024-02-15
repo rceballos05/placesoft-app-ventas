@@ -5,16 +5,15 @@ import 'package:http/http.dart' as http;
 
 const url = '192.168.1.3:7177';
 Future<bool> iniciarSesion(String rut, String pass) async {
-  // var response = await getPrefijo(rut);
-  // var login = false;
-  // if (response != null) {
-  //   var data = await getPass(response.prefijo, pass, rut);
-  //   if (data == true) {
-  //     login = true;
-  //   }
-  // }
-  // return login;
-  return false;
+  var response = await getPrefijo(rut);
+  var login = false;
+  if (response != null) {
+    var data = await getPass(response.prefijo, pass, rut);
+    if (data == true) {
+      login = true;
+    }
+  }
+  return login;
 }
 
 Future<VendedorAppModel?> getPrefijo(String rut) async {
@@ -28,10 +27,11 @@ Future<VendedorAppModel?> getPrefijo(String rut) async {
     print(error);
   }
   if (rsp['code'] == 200) {
-    // VendedorAppModel vendedorApp = new VendedorAppModel(
-    //     rut: rsp['items'][0]['rut'], prefijos: rsp['items'][0]['prefijo']);
-
-    return null;
+    VendedorAppModel vendedorApp = VendedorAppModel(
+      rut: rsp['items'][0]['rut'],
+      prefijo: rsp['items'][0]['prefijo'],
+    );
+    return vendedorApp;
   } else {
     return null;
   }
