@@ -1,6 +1,6 @@
 {
-    "name": "app_ventas",
-    "short_name": "app_ventas",
+    "name": "aplicacion_ventas",
+    "short_name": "aplicacion_ventas",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

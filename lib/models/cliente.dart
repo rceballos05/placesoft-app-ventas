@@ -36,6 +36,7 @@ class Cliente {
   String? dectoSeccion;
   String? dctodepto;
   int? esInstitucionPulica;
+  List<Saldo>? saldos;
 
   Cliente({
     this.activo,
@@ -75,6 +76,7 @@ class Cliente {
     this.terceraEdad,
     this.tipoCliente,
     this.vendedor,
+    //required this.saldos,
   });
 
   factory Cliente.fromJson(Map<String, dynamic> json) {
@@ -82,40 +84,57 @@ class Cliente {
       rut: json['rut'],
       nombre: json['nombre'],
       direccion: json['direccion'],
-      codComuna: json['codComuna'],
       comuna: json['comuna'],
       ciudad: json['ciudad'],
-      sector: json['sector'],
-      fono1: json['fono1'],
-      fono2: json['fono2'],
-      fax: json['fax'],
-      celular: json['celular'],
-      giro: json['giro'],
       email: json['email'],
-      activo: json['activo'],
-      bloqueo: json['bloqueo'],
-      bloqueoFacturas: json['bloqueoFacturas'],
-      canalCliente: json['canalCliente'],
-      codigoListaPrecios: json['codigoListaPrecios'],
-      contacto: json['contacto'],
-      contactoFono: json['contactoFono'],
-      contactoMail: json['contactoMail'],
       cupo: json['cupo'],
-      dctodepto: json['dctoDepto'],
-      dectoSeccion: json['dctoSeccion'],
-      descuento: json['descuento'],
-      diasCredito: json['diasCredito'],
-      disponible: json['disponible'],
-      esInstitucionPulica: json['esInstitucionPublica'],
-      fechaIngreso: json['fechaIngreso'],
-      localCreacion: json['localCreacion'],
-      plaso: json['plaso'],
-      precioMenor: json['precioMenor'],
-      tarjetaCupo: json['tarjetaCupo'],
-      tarjetaDiaPago: json['tarjetaDiaPago'],
-      terceraEdad: json['terceraEdad'],
-      tipoCliente: json['tipoCliente'],
+      plaso: json['plazo'],
       vendedor: json['vendedor'],
+    );
+  }
+}
+
+class Saldo {
+  int? id;
+  String? rutCliente;
+  String? direccionDestino;
+  String? numeropagoOrigen;
+  String? local;
+  int? monto;
+  int? utilizado;
+  String? usuariocreacion;
+  String? numeropagoDestino;
+  String? fechapagoDestino;
+  String? tipoDoc;
+  String? folioDoc;
+  Saldo(
+      {this.id,
+      this.direccionDestino,
+      this.fechapagoDestino,
+      this.folioDoc,
+      this.local,
+      this.monto,
+      this.numeropagoDestino,
+      this.numeropagoOrigen,
+      this.rutCliente,
+      this.tipoDoc,
+      this.usuariocreacion,
+      this.utilizado});
+
+  factory Saldo.fromJson(Map<String, dynamic> json) {
+    return Saldo(
+      id: json["id"],
+      rutCliente: json["rutCliente"],
+      direccionDestino: json["direccionDestino"],
+      fechapagoDestino: json["fechapagoDestino"],
+      folioDoc: json["folioDoc"],
+      local: json["local"],
+      monto: json["monto"],
+      numeropagoDestino: json["numeropagoDestino"],
+      numeropagoOrigen: json["numeropagoOrigen"],
+      tipoDoc: json["tipoDoc"],
+      usuariocreacion: json["usuariocreacion"],
+      utilizado: json["utilizado"],
     );
   }
 }

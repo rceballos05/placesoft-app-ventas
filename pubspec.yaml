@@ -1,27 +1,67 @@
-name: app_ventas
+name: aplicacion_ventas
 description: "A new Flutter project."
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
+
 environment:
-  sdk: '>=3.2.6 <4.0.0'
+  sdk: '>=3.3.1 <4.0.0'
+
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
-  http: ^1.2.0
-  permission_handler: ^11.2.0
-  flutter_flushbar: ^0.0.2
-  badges: ^3.1.2
-  curved_navigation_bar: ^1.0.3
-  clippy_flutter: ^2.0.0-nullsafety.1
+
+  cupertino_icons: 1.0.6
+  animated_theme_switcher: 2.0.10
+  flutter_screenutil: 5.9.0
+  line_awesome_flutter: 2.0.0
+  badges: 3.1.2
+  http: 1.2.1
+  curved_navigation_bar: 1.0.3
+  clippy_flutter: 2.0.0-nullsafety.1
+  darq: 2.0.0
+  geolocator: 11.0.0
+  currency_formatter: 2.2.1
+  flutter_launcher_icons: 0.13.1
+  flutter_email_sender: ^6.0.3
+  sqflite: ^2.3.3+1
+  connectivity_plus: ^6.0.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^3.0.0
+
+  
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/img/logo-p.png"
+
 flutter:
   uses-material-design: true
+
   assets:
     - assets/img/logo-p.png
+    - assets/img/user.png
+    - assets/img/producto.png
+    - assets/database/aalegria/productos.db
+    - assets/database/aalegria/clientes.db
+    - assets/database/walrob/productos.db
+    - assets/database/walrob/clientes.db
+    - assets/database/rollo.db
+    - assets/database/ventas.db
+    - assets/database/login.db
+    - assets/database/crvictoria/productos.db
+    - assets/database/crvictoria/clientes.db
 
-
+    
+  fonts:
+    - family: SFProText
+      fonts:
+        - asset: assets/fonts/SF-Pro-Text-Thin.otf
+          weight: 100
+        - asset: assets/fonts/SF-Pro-Text-Regular.otf
+          weight: 400
+        - asset: assets/fonts/SF-Pro-Text-Medium.otf
+          weight: 500
+        - asset: assets/fonts/SF-Pro-Text-Bold.otf
+          weight: 700
