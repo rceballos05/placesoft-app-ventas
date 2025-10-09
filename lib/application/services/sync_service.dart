@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 
 import 'package:aplicacion_ventas/core/utils/failure.dart';
@@ -21,63 +22,99 @@ class SyncService {
   final LoginService _loginService;
   final Connectivity _connectivity;
 
-  /// Sends local sales to the server using the cached prefix for the provided [rut].
-  Future<Result<void>> syncLocalSales({required String rut}) async {
-    developer.log('Solicitando sincronización de ventas', name: 'SyncService');
-    final normalizedRut = rut.trim().toLowerCase();
+  /// Public API used by the UI to trigger synchronization of pending sales.
+  Future<void> sincronizarVentas({required String rut}) async {
+    final normalizedRut = rut.trim();
     if (normalizedRut.isEmpty) {
-      return FailureResult<void>(Failure('Debes ingresar un RUT para sincronizar'));
+      throw Failure('Debes ingresar un RUT para sincronizar');
+    }
+
+    final connectivityResult = await _connectivity.checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      throw Failure('No hay conexión a internet');
+    }
+
+    final prefix = await _obtenerPrefijoDesdeCache(normalizedRut);
+    if (prefix == null) {
+      throw Failure('Modo offline no disponible');
     }
 
     try {
-      final connectivityResult = await _connectivity.checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        developer.log('Sin conexión disponible para sincronizar', name: 'SyncService');
-        return FailureResult<void>(Failure('No hay conexión a internet'));
-      }
-
-      final prefix = await _loginService.getCachedPrefix(normalizedRut);
-      if (prefix == null) {
-        developer.log('No existe prefijo cacheado para $normalizedRut', name: 'SyncService');
-        return FailureResult<void>(Failure('Modo offline no disponible'));
-      }
-
+      developer.log('Sincronizando ventas locales de $prefix', name: 'SyncService');
       await _remoteDataSource.syncLocalSales(prefix: prefix);
-      developer.log('Sincronización completada', name: 'SyncService');
-      return const Success<void>(null);
+      await _loginService.asegurarBaseLocal(prefix);
+    } on Failure {
+      rethrow;
     } catch (error, stackTrace) {
       developer.log('Error durante la sincronización', name: 'SyncService', error: error, stackTrace: stackTrace);
-      return FailureResult<void>(Failure('No fue posible sincronizar los datos', cause: error));
+      throw Failure('No fue posible sincronizar los datos', cause: error);
     }
   }
 
-  /// Downloads new catalog information for the company associated to the provided [rut].
-  Future<Result<void>> downloadLatestData({required String rut}) async {
-    developer.log('Iniciando descarga de datos', name: 'SyncService');
-    final normalizedRut = rut.trim().toLowerCase();
+  /// Downloads catalog and supporting data required for offline mode.
+  Future<void> descargarDatosActualizados({required String rut}) async {
+    final normalizedRut = rut.trim();
     if (normalizedRut.isEmpty) {
-      return FailureResult<void>(Failure('Debes ingresar un RUT para descargar datos'));
+      throw Failure('Debes ingresar un RUT para descargar datos');
+    }
+
+    final connectivityResult = await _connectivity.checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      throw Failure('No hay conexión a internet');
+    }
+
+    final prefix = await _obtenerPrefijoDesdeCache(normalizedRut);
+    if (prefix == null) {
+      throw Failure('Modo offline no disponible');
     }
 
     try {
-      final connectivityResult = await _connectivity.checkConnectivity();
-      if (connectivityResult == ConnectivityResult.none) {
-        developer.log('Sin conexión para descargar datos', name: 'SyncService');
-        return FailureResult<void>(Failure('No hay conexión a internet'));
-      }
-
-      final prefix = await _loginService.getCachedPrefix(normalizedRut);
-      if (prefix == null) {
-        developer.log('No existe prefijo cacheado para $normalizedRut', name: 'SyncService');
-        return FailureResult<void>(Failure('Modo offline no disponible'));
-      }
-
+      developer.log('Descargando información para $prefix', name: 'SyncService');
       await _remoteDataSource.downloadCatalog(prefix: prefix);
-      developer.log('Descarga finalizada', name: 'SyncService');
-      return const Success<void>(null);
+      await _loginService.asegurarBaseLocal(prefix);
+    } on Failure {
+      rethrow;
     } catch (error, stackTrace) {
       developer.log('Error durante la descarga', name: 'SyncService', error: error, stackTrace: stackTrace);
-      return FailureResult<void>(Failure('Error al descargar información', cause: error));
+      throw Failure('Error al descargar información', cause: error);
+    }
+  }
+
+  /// Compatibility wrapper retained from the refactor API.
+  Future<Result<void>> syncLocalSales({required String rut}) async {
+    try {
+      await sincronizarVentas(rut: rut);
+      return const Success<void>(null);
+    } on Failure catch (failure) {
+      return FailureResult<void>(failure);
+    }
+  }
+
+  /// Compatibility wrapper retained from the refactor API.
+  Future<Result<void>> downloadLatestData({required String rut}) async {
+    try {
+      await descargarDatosActualizados(rut: rut);
+      return const Success<void>(null);
+    } on Failure catch (failure) {
+      return FailureResult<void>(failure);
+    }
+  }
+
+  Future<String?> _obtenerPrefijoDesdeCache(String rut) async {
+    final cachedPrefix = await _loginService.getCachedPrefix(rut);
+    if (cachedPrefix != null) {
+      return cachedPrefix;
+    }
+
+    try {
+      final prefijo = await _loginService.obtenerPrefijo(rut);
+      if (prefijo != null) {
+        await _loginService.asegurarBaseLocal(prefijo);
+      }
+      return prefijo;
+    } on Failure catch (failure) {
+      developer.log('No fue posible recuperar prefijo', name: 'SyncService', error: failure);
+      return null;
     }
   }
 }

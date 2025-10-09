@@ -1,14 +1,18 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'dart:io';
 
 import 'package:aplicacion_ventas/core/utils/failure.dart';
 import 'package:aplicacion_ventas/core/utils/result.dart';
-import 'package:aplicacion_ventas/data/datasources/remote/auth_remote_datasource.dart';
 import 'package:aplicacion_ventas/domain/entities/user.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 
 /// Result of a successful login operation.
 class LoginResult {
@@ -21,7 +25,7 @@ class LoginResult {
   /// Authenticated user information.
   final User user;
 
-  /// Asset path to the database associated to the company prefix.
+  /// Local path to the database associated to the company prefix.
   final String? databaseAssetPath;
 
   /// Indicates if the login was performed offline.
@@ -35,83 +39,53 @@ class _CachedCredentials {
   final String passwordHash;
 }
 
+class _RutData {
+  const _RutData({
+    required this.body,
+    required this.dv,
+    required this.formatted,
+  });
+
+  final String body;
+  final String dv;
+  final String formatted;
+
+  String get cacheKey => '$body$dv'.toLowerCase();
+}
+
 /// Handles all the authentication workflow including offline fallbacks.
 class LoginService {
-  LoginService({
-    required AuthRemoteDataSource remoteDataSource,
-    Connectivity? connectivity,
-  })  : _remoteDataSource = remoteDataSource,
+  LoginService({http.Client? httpClient, Connectivity? connectivity})
+      : _httpClient = httpClient ?? http.Client(),
         _connectivity = connectivity ?? Connectivity();
 
-  final AuthRemoteDataSource _remoteDataSource;
+  final http.Client _httpClient;
   final Connectivity _connectivity;
 
   static const _cachePrefix = 'login_cache';
+  static const _baseUrl = '192.168.1.3:7177';
+  static const _httpTimeout = Duration(seconds: 15);
+
+  LoginResult? _lastLoginResult;
+  Failure? _lastFailure;
+  User? _onlineUserCache;
+  User? _offlineUserCache;
 
   /// Attempts to authenticate the user using either the remote API or local cache.
   Future<Result<LoginResult>> authenticate({required String rut, required String password}) async {
-    developer.log('Iniciando autenticación', name: 'LoginService');
-    final normalizedRut = rut.trim().toLowerCase();
-    final normalizedPassword = password.trim();
+    _lastLoginResult = null;
+    _lastFailure = null;
+    _onlineUserCache = null;
+    _offlineUserCache = null;
 
-    if (normalizedRut.isEmpty) {
-      return FailureResult<LoginResult>(Failure('El RUT es obligatorio'));
-    }
-    if (normalizedPassword.isEmpty) {
-      return FailureResult<LoginResult>(Failure('La contraseña es obligatoria'));
-    }
+    developer.log('Iniciando autenticación', name: 'LoginService');
 
     try {
-      final connectivityResult = await _connectivity.checkConnectivity();
-      final hasInternet = connectivityResult != ConnectivityResult.none;
-      developer.log('Conectividad detectada: $connectivityResult', name: 'LoginService');
-
-      if (hasInternet) {
-        final user = await _remoteDataSource.login(rut: normalizedRut, password: normalizedPassword);
-        final databasePath = await _resolveLocalDatabase(user.prefijo);
-        await _persistCredentials(
-          rut: normalizedRut,
-          prefix: user.prefijo,
-          passwordHash: _hashPassword(normalizedPassword),
-        );
-        developer.log('Login remoto exitoso para ${user.rut}', name: 'LoginService');
-        return Success<LoginResult>(
-          LoginResult(
-            user: user,
-            databaseAssetPath: databasePath,
-            isOfflineMode: false,
-          ),
-        );
+      final success = await iniciarSesion(rut, password);
+      if (success && _lastLoginResult != null) {
+        return Success<LoginResult>(_lastLoginResult!);
       }
-
-      developer.log('Intentando login offline', name: 'LoginService');
-      final cachedCredentials = await _loadCachedCredentials(normalizedRut);
-      if (cachedCredentials == null) {
-        developer.log('No se encontraron credenciales en caché', name: 'LoginService');
-        return FailureResult<LoginResult>(Failure('Modo offline no disponible'));
-      }
-
-      final incomingPasswordHash = _hashPassword(normalizedPassword);
-      if (cachedCredentials.passwordHash != incomingPasswordHash) {
-        developer.log('La contraseña cacheada no coincide', name: 'LoginService');
-        return FailureResult<LoginResult>(Failure('Modo offline no disponible'));
-      }
-
-      final databasePath = await _resolveLocalDatabase(cachedCredentials.prefix);
-      if (databasePath == null) {
-        developer.log('No se encontró base de datos local para ${cachedCredentials.prefix}', name: 'LoginService');
-        return FailureResult<LoginResult>(Failure('Modo offline no disponible'));
-      }
-
-      final offlineUser = User(rut: normalizedRut, prefijo: cachedCredentials.prefix);
-      developer.log('Login offline exitoso para ${offlineUser.rut}', name: 'LoginService');
-      return Success<LoginResult>(
-        LoginResult(
-          user: offlineUser,
-          databaseAssetPath: databasePath,
-          isOfflineMode: true,
-        ),
-      );
+      return FailureResult<LoginResult>(_lastFailure ?? Failure('No fue posible iniciar sesión'));
     } on Failure catch (failure, stackTrace) {
       developer.log('Fallo en autenticación', name: 'LoginService', error: failure, stackTrace: stackTrace);
       return FailureResult<LoginResult>(failure);
@@ -121,16 +95,275 @@ class LoginService {
     }
   }
 
+  /// Executes the authentication workflow with online and offline fallbacks.
+  Future<bool> iniciarSesion(String rut, String pass) async {
+    _lastLoginResult = null;
+    _lastFailure = null;
+    _onlineUserCache = null;
+    _offlineUserCache = null;
+
+    final trimmedPassword = pass.trim();
+    if (trimmedPassword.isEmpty) {
+      _lastFailure = Failure('La contraseña es obligatoria');
+      return false;
+    }
+
+    late final _RutData rutData;
+    try {
+      rutData = _normalizeRut(rut);
+    } on Failure catch (failure) {
+      _lastFailure = failure;
+      return false;
+    }
+
+    developer.log('RUT normalizado: ${rutData.formatted}', name: 'LoginService');
+
+    final connectivityResult = await _connectivity.checkConnectivity();
+    final hasInternet = connectivityResult != ConnectivityResult.none;
+    developer.log('Conectividad detectada: $connectivityResult', name: 'LoginService');
+
+    String? prefijo;
+    if (hasInternet) {
+      try {
+        prefijo = await obtenerPrefijo(rutData.formatted);
+      } on Failure catch (failure) {
+        _lastFailure = failure;
+      } catch (error, stackTrace) {
+        developer.log('Error obteniendo prefijo remoto', name: 'LoginService', error: error, stackTrace: stackTrace);
+        _lastFailure = Failure('Error al obtener prefijo del servidor', cause: error);
+      }
+    }
+
+    if (prefijo != null) {
+      try {
+        final onlineOk = await loginOnline(prefijo, rutData.formatted, trimmedPassword);
+        if (onlineOk) {
+          await asegurarBaseLocal(prefijo);
+          final databasePath = await _resolveLocalDatabase(prefijo);
+          final user = _onlineUserCache ?? User(rut: rutData.formatted, prefijo: prefijo);
+          _lastLoginResult = LoginResult(
+            user: user,
+            databaseAssetPath: databasePath,
+            isOfflineMode: false,
+          );
+          await _persistCredentials(
+            rut: rutData.cacheKey,
+            prefix: user.prefijo,
+            passwordHash: _hashPassword(trimmedPassword),
+          );
+          return true;
+        }
+      } on Failure catch (failure) {
+        developer.log('Fallo en login online', name: 'LoginService', error: failure);
+        _lastFailure = failure;
+      } catch (error, stackTrace) {
+        developer.log('Error inesperado en login online', name: 'LoginService', error: error, stackTrace: stackTrace);
+        _lastFailure = Failure('No fue posible validar credenciales en línea', cause: error);
+      }
+    }
+
+    developer.log('Intentando autenticación offline', name: 'LoginService');
+    final offlineOk = await loginOffline(rutData.formatted, trimmedPassword);
+    if (offlineOk) {
+      final user = _offlineUserCache;
+      if (user == null) {
+        _lastFailure = Failure('Modo offline no disponible');
+        return false;
+      }
+      try {
+        await asegurarBaseLocal(user.prefijo);
+      } on Failure catch (failure) {
+        _lastFailure = failure;
+        return false;
+      }
+      final databasePath = await _resolveLocalDatabase(user.prefijo);
+      _lastLoginResult = LoginResult(
+        user: user,
+        databaseAssetPath: databasePath,
+        isOfflineMode: true,
+      );
+      return true;
+    }
+
+    _lastFailure ??= Failure('Credenciales inválidas');
+    return false;
+  }
+
+  /// Retrieves the company prefix associated to the provided [rut].
+  Future<String?> obtenerPrefijo(String rut) async {
+    final rutData = _normalizeRut(rut);
+    final uri = Uri.http(_baseUrl, '/api/Login/${rutData.formatted}');
+
+    try {
+      developer.log('Solicitando prefijo remoto', name: 'LoginService');
+      final response = await _httpClient.get(uri).timeout(_httpTimeout);
+      if (response.statusCode != 200) {
+        throw Failure('Error al consultar prefijo (${response.statusCode})');
+      }
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (decoded['code'] != 200) {
+        return null;
+      }
+      final items = decoded['items'];
+      if (items is! List || items.isEmpty) {
+        return null;
+      }
+      final data = items.first as Map<String, dynamic>;
+      final prefijo = data['prefijo'] as String?;
+      if (prefijo == null || prefijo.isEmpty) {
+        throw Failure('Respuesta inválida del servidor');
+      }
+      return prefijo;
+    } on SocketException catch (error) {
+      developer.log('Sin conexión al obtener prefijo', name: 'LoginService', error: error);
+      throw Failure('No hay conexión a internet', cause: error);
+    } on TimeoutException catch (error) {
+      developer.log('Timeout al obtener prefijo', name: 'LoginService', error: error);
+      throw Failure('Tiempo de espera agotado al obtener prefijo', cause: error);
+    } on FormatException catch (error) {
+      developer.log('Formato inválido al obtener prefijo', name: 'LoginService', error: error);
+      throw Failure('Respuesta inválida del servidor', cause: error);
+    }
+  }
+
+  /// Validates the credentials against the remote API.
+  Future<bool> loginOnline(String prefijo, String rut, String pass) async {
+    final uri = Uri.http(_baseUrl, 'api/Login/$prefijo/iniciar-sesion/$rut/$pass');
+
+    try {
+      final response = await _httpClient.get(uri).timeout(_httpTimeout);
+      if (response.statusCode != 200) {
+        throw Failure('Error al validar credenciales (${response.statusCode})');
+      }
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      if (decoded['code'] != 200) {
+        return false;
+      }
+      final items = decoded['items'];
+      if (items is List && items.isNotEmpty) {
+        final item = items.first as Map<String, dynamic>;
+        final responseRut = (item['rut'] as String?) ?? rut;
+        final responsePrefix = (item['prefijo'] as String?) ?? prefijo;
+        _onlineUserCache = User(rut: responseRut, prefijo: responsePrefix);
+        await _updateLocalLoginDatabase(responseRut, responsePrefix, pass);
+      } else {
+        _onlineUserCache = User(rut: rut, prefijo: prefijo);
+        await _updateLocalLoginDatabase(rut, prefijo, pass);
+      }
+      developer.log('Login remoto exitoso para $rut', name: 'LoginService');
+      return true;
+    } on SocketException catch (error) {
+      developer.log('Sin conexión durante login online', name: 'LoginService', error: error);
+      throw Failure('No hay conexión a internet', cause: error);
+    } on TimeoutException catch (error) {
+      developer.log('Timeout durante login online', name: 'LoginService', error: error);
+      throw Failure('Tiempo de espera agotado durante login', cause: error);
+    } on FormatException catch (error) {
+      developer.log('Formato inválido en login online', name: 'LoginService', error: error);
+      throw Failure('Respuesta inválida del servidor', cause: error);
+    }
+  }
+
+  /// Attempts to authenticate the user using the local login database or cached credentials.
+  Future<bool> loginOffline(String rut, String pass) async {
+    try {
+      final loginDbPath = await _prepareLoginDatabase();
+      final db = await openDatabase(loginDbPath, readOnly: true);
+      try {
+        final results = await db.query('login', where: 'rut = ?', whereArgs: <Object>[rut]);
+        if (results.isNotEmpty) {
+          final row = results.first;
+          final storedPassword = (row['password'] as String?) ?? '';
+          final prefix = (row['prefijo'] as String?) ?? '';
+          final hashedIncoming = _hashPassword(pass);
+          if (prefix.isNotEmpty && (storedPassword == pass || storedPassword == hashedIncoming)) {
+            _offlineUserCache = User(rut: rut, prefijo: prefix);
+            return true;
+          }
+        }
+      } finally {
+        await db.close();
+      }
+
+      final cachedCredentials = await _loadCachedCredentials(_normalizeRut(rut).cacheKey);
+      if (cachedCredentials == null) {
+        developer.log('No se encontraron credenciales cacheadas para $rut', name: 'LoginService');
+        return false;
+      }
+      final incomingHash = _hashPassword(pass);
+      if (cachedCredentials.passwordHash != incomingHash) {
+        developer.log('La contraseña cacheada no coincide', name: 'LoginService');
+        return false;
+      }
+      _offlineUserCache = User(rut: rut, prefijo: cachedCredentials.prefix);
+      return true;
+    } on DatabaseException catch (error) {
+      developer.log('Error accediendo a la base de login offline', name: 'LoginService', error: error);
+      return false;
+    } on Failure catch (failure) {
+      developer.log('Fallo validando credenciales offline', name: 'LoginService', error: failure);
+      _lastFailure = failure;
+      return false;
+    } catch (error, stackTrace) {
+      developer.log('Error inesperado en login offline', name: 'LoginService', error: error, stackTrace: stackTrace);
+      return false;
+    }
+  }
+
+  /// Ensures the local databases for the provided [prefijo] are available for offline mode.
+  Future<void> asegurarBaseLocal(String prefijo) async {
+    final normalizedPrefix = prefijo.trim().toLowerCase();
+    if (normalizedPrefix.isEmpty) {
+      throw Failure('Prefijo inválido para preparar base local');
+    }
+
+    final databasesPath = await getDatabasesPath();
+    await _copyAssetIfNeeded('assets/database/login.db', p.join(databasesPath, 'login.db'), required: true);
+
+    final prefixDir = Directory(p.join(databasesPath, normalizedPrefix));
+    if (!await prefixDir.exists()) {
+      await prefixDir.create(recursive: true);
+    }
+
+    final assetCandidates = <String>[
+      'assets/database/$normalizedPrefix/clientes.db',
+      'assets/database/$normalizedPrefix/productos.db',
+      'assets/database/${normalizedPrefix}_local00.db',
+    ];
+
+    var copiedAny = false;
+    for (final asset in assetCandidates) {
+      final destination = p.join(prefixDir.path, p.basename(asset));
+      final copied = await _copyAssetIfNeeded(asset, destination);
+      copiedAny = copiedAny || copied;
+    }
+
+    for (final asset in <String>['assets/database/ventas.db', 'assets/database/rollo.db']) {
+      final destination = p.join(databasesPath, p.basename(asset));
+      await _copyAssetIfNeeded(asset, destination);
+    }
+
+    if (!copiedAny) {
+      developer.log('No se encontró base local para $prefijo', name: 'LoginService');
+      throw Failure('Modo offline no disponible');
+    }
+  }
+
   /// Retrieves the cached prefix for the provided [rut].
   Future<String?> getCachedPrefix(String rut) async {
-    final credentials = await _loadCachedCredentials(rut.trim().toLowerCase());
-    return credentials?.prefix;
+    try {
+      final rutData = _normalizeRut(rut);
+      final credentials = await _loadCachedCredentials(rutData.cacheKey);
+      return credentials?.prefix;
+    } on Failure {
+      return null;
+    }
   }
 
   Future<void> _persistCredentials({required String rut, required String prefix, required String passwordHash}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final key = _cacheKeyFor(rut.trim().toLowerCase());
+      final key = _cacheKeyFor(rut);
       await prefs.setStringList(key, <String>[prefix, passwordHash]);
       developer.log('Credenciales guardadas localmente para $rut', name: 'LoginService');
     } catch (error, stackTrace) {
@@ -138,10 +371,10 @@ class LoginService {
     }
   }
 
-  Future<_CachedCredentials?> _loadCachedCredentials(String rut) async {
+  Future<_CachedCredentials?> _loadCachedCredentials(String rutKey) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final key = _cacheKeyFor(rut);
+      final key = _cacheKeyFor(rutKey);
       final cachedValues = prefs.getStringList(key);
       if (cachedValues == null || cachedValues.length != 2) {
         return null;
@@ -155,26 +388,111 @@ class LoginService {
 
   Future<String?> _resolveLocalDatabase(String prefix) async {
     final normalizedPrefix = prefix.trim().toLowerCase();
+    final databasesPath = await getDatabasesPath();
     final candidates = <String>[
-      'assets/databases/${normalizedPrefix}_local00.db',
-      'assets/database/${normalizedPrefix}_local00.db',
-      'assets/database/$normalizedPrefix/productos.db',
-      'assets/database/$normalizedPrefix/clientes.db',
+      p.join(databasesPath, normalizedPrefix, 'clientes.db'),
+      p.join(databasesPath, normalizedPrefix, 'productos.db'),
+      p.join(databasesPath, '${normalizedPrefix}_local00.db'),
     ];
 
     for (final candidate in candidates) {
-      try {
-        await rootBundle.load(candidate);
-        developer.log('Base de datos encontrada en $candidate', name: 'LoginService');
+      final file = File(candidate);
+      if (await file.exists()) {
         return candidate;
-      } on FlutterError {
-        // Continue searching other paths silently.
-      } catch (error, stackTrace) {
-        developer.log('Error leyendo base local $candidate', name: 'LoginService', error: error, stackTrace: stackTrace);
       }
     }
-
     return null;
+  }
+
+  Future<String> _prepareLoginDatabase() async {
+    final databasesPath = await getDatabasesPath();
+    final destination = p.join(databasesPath, 'login.db');
+    await _copyAssetIfNeeded('assets/database/login.db', destination, required: true);
+    return destination;
+  }
+
+  Future<void> _updateLocalLoginDatabase(String rut, String prefijo, String password) async {
+    final loginDbPath = await _prepareLoginDatabase();
+    final db = await openDatabase(loginDbPath);
+    try {
+      await db.insert(
+        'login',
+        <String, Object?>{
+          'rut': rut,
+          'password': _hashPassword(password),
+          'prefijo': prefijo,
+          'caja': '',
+          'url_imagen': '',
+          'max_dcto': 0,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (error, stackTrace) {
+      developer.log('Error actualizando base de login local', name: 'LoginService', error: error, stackTrace: stackTrace);
+    } finally {
+      await db.close();
+    }
+  }
+
+  Future<bool> _copyAssetIfNeeded(String assetPath, String destinationPath, {bool required = false}) async {
+    final file = File(destinationPath);
+    if (await file.exists()) {
+      return true;
+    }
+
+    try {
+      final byteData = await rootBundle.load(assetPath);
+      await file.parent.create(recursive: true);
+      final buffer = byteData.buffer;
+      await file.writeAsBytes(buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes), flush: true);
+      developer.log('Base copiada desde asset $assetPath a $destinationPath', name: 'LoginService');
+      return true;
+    } on FlutterError catch (error, stackTrace) {
+      developer.log('Asset no encontrado $assetPath', name: 'LoginService', error: error, stackTrace: stackTrace);
+      if (required) {
+        throw Failure('Modo offline no disponible', cause: error);
+      }
+      return false;
+    } catch (error, stackTrace) {
+      developer.log('Error copiando asset $assetPath', name: 'LoginService', error: error, stackTrace: stackTrace);
+      if (required) {
+        throw Failure('Error preparando base de datos local', cause: error);
+      }
+      return false;
+    }
+  }
+
+  _RutData _normalizeRut(String rut) {
+    final sanitized = rut.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
+    if (sanitized.length < 2) {
+      throw Failure('RUT inválido');
+    }
+    final body = sanitized.substring(0, sanitized.length - 1);
+    final dv = sanitized.substring(sanitized.length - 1);
+    final paddedBody = body.padLeft(8, '0');
+    final expectedDv = _calculateRutDv(paddedBody);
+    if (expectedDv != dv) {
+      throw Failure('RUT inválido');
+    }
+    final formatted = '$paddedBody-$dv';
+    return _RutData(body: paddedBody, dv: dv, formatted: formatted);
+  }
+
+  String _calculateRutDv(String body) {
+    var sum = 0;
+    var multiplier = 2;
+    for (var i = body.length - 1; i >= 0; i--) {
+      sum += int.parse(body[i]) * multiplier;
+      multiplier = multiplier == 7 ? 2 : multiplier + 1;
+    }
+    final remainder = 11 - (sum % 11);
+    if (remainder == 11) {
+      return '0';
+    }
+    if (remainder == 10) {
+      return 'K';
+    }
+    return remainder.toString();
   }
 
   String _cacheKeyFor(String rut) => '$_cachePrefix:$rut';
