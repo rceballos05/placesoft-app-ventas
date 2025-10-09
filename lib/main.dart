@@ -1,7 +1,5 @@
 import 'package:aplicacion_ventas/core/theme/app_theme.dart';
-import 'package:aplicacion_ventas/presentation/pages/cart_page.dart';
-import 'package:aplicacion_ventas/presentation/pages/home_page.dart';
-import 'package:aplicacion_ventas/presentation/pages/login_page.dart';
+import 'package:aplicacion_ventas/presentation/router/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -25,12 +23,8 @@ class MyApp extends ConsumerWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeMode.system,
-          routes: {
-            LoginPage.routeName: (context) => const LoginPage(),
-            HomePage.routeName: (context) => const HomePage(),
-            CartPage.routeName: (context) => const CartPage(),
-          },
-          initialRoute: LoginPage.routeName,
+          routes: AppRouter.routes,
+          initialRoute: AppRouter.initialRoute,
         );
       },
     );

@@ -1,6 +1,6 @@
 import 'package:aplicacion_ventas/core/utils/result.dart';
 import 'package:aplicacion_ventas/domain/entities/product.dart';
-import 'package:aplicacion_ventas/domain/repositories/product_repository.dart';
+import 'package:aplicacion_ventas/domain/entities/contracts/product_repository.dart';
 
 /// Retrieves the available product catalogue.
 class FetchProductsUseCase {

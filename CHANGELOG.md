@@ -1,8 +1,10 @@
 # Changelog
 
 ## Unreleased
-- Reestructuración del proyecto aplicando arquitectura por capas y estado con Riverpod.
-- Centralización de temas y utilidades responsive con `ScreenUtilInit` en `main.dart`.
-- Refactor de las pantallas de Login, Home y Carro para UI adaptativa y lógica aislada.
-- Creación de repositorios, modelos y casos de uso con retornos tipados mediante `Result`.
-- Incorporación de servicio de sincronización reutilizable y controladores para autenticación, catálogo y carro.
+- Reorganización definitiva de la carpeta `lib/` siguiendo la arquitectura limpia propuesta.
+  - `pages/`, `widgets/` y `router/` migrados a `presentation/` con rutas centralizadas en `AppRouter`.
+  - Creación de `data/datasources/remote/` para los orígenes `AuthRemoteDataSource`, `ProductRemoteDataSource` y `SyncRemoteDataSource`.
+  - Contratos de repositorios movidos a `domain/entities/contracts/` para mantener el dominio sin dependencias externas.
+- Limpieza de código legado: eliminación de `functions/`, `models/`, `db/` y `statics/` (utilizaban la implementación antigua sin Riverpod).
+- Actualización de importaciones para reflejar la nueva estructura (`core/utils/failure.dart`, proveedores y repositorios).
+- `main.dart` ahora consume `AppRouter` y concentra la inicialización de tema y `ScreenUtil`.

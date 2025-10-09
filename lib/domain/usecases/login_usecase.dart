@@ -1,6 +1,6 @@
 import 'package:aplicacion_ventas/core/utils/result.dart';
 import 'package:aplicacion_ventas/domain/entities/user.dart';
-import 'package:aplicacion_ventas/domain/repositories/auth_repository.dart';
+import 'package:aplicacion_ventas/domain/entities/contracts/auth_repository.dart';
 
 /// Use case that orchestrates the login flow.
 class LoginUseCase {
