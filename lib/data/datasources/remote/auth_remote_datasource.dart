@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:aplicacion_ventas/core/utils/failure.dart';
 import 'package:aplicacion_ventas/data/models/user_model.dart';
@@ -14,6 +15,7 @@ class AuthRemoteDataSource {
   /// Performs the login request flow and returns the authenticated user.
   Future<UserModel> login({required String rut, required String password}) async {
     try {
+      developer.log('Solicitando prefijo para $rut', name: 'AuthRemoteDataSource');
       final prefijoResponse = await _client.get(Uri.http(_baseUrl, '/api/Login/$rut'));
       final prefijoDecoded = jsonDecode(prefijoResponse.body) as Map<String, dynamic>;
       final items = prefijoDecoded['items'];
@@ -22,6 +24,7 @@ class AuthRemoteDataSource {
       }
 
       final user = UserModel.fromJson(items.first as Map<String, dynamic>);
+      developer.log('Validando contraseña para ${user.prefijo}', name: 'AuthRemoteDataSource');
       final passResponse = await _client.get(
         Uri.http(_baseUrl, 'api/Login/${user.prefijo}/iniciar-sesion/$rut/$password'),
       );
@@ -30,10 +33,12 @@ class AuthRemoteDataSource {
         throw UserFailure('Credenciales inválidas');
       }
 
+      developer.log('Login remoto exitoso para ${user.rut}', name: 'AuthRemoteDataSource');
       return user;
     } on UserFailure {
       rethrow;
-    } catch (error) {
+    } catch (error, stackTrace) {
+      developer.log('Error consultando login remoto', name: 'AuthRemoteDataSource', error: error, stackTrace: stackTrace);
       throw UserFailure('No fue posible iniciar sesión', cause: error);
     }
   }

@@ -1,6 +1,6 @@
 import 'package:aplicacion_ventas/presentation/pages/cart_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/home_page.dart';
-import 'package:aplicacion_ventas/presentation/pages/login_page.dart';
+import 'package:aplicacion_ventas/presentation/pages/login.dart';
 import 'package:flutter/material.dart';
 
 /// Centralized route configuration for the application.

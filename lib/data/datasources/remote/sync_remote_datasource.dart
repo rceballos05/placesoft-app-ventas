@@ -1,26 +1,26 @@
-import 'package:aplicacion_ventas/core/utils/failure.dart';
-import 'package:aplicacion_ventas/core/utils/result.dart';
+import 'dart:developer' as developer;
 
 /// Handles synchronization tasks with offline databases and remote APIs.
 class SyncRemoteDataSource {
   /// Downloads data required for offline usage.
-  Future<Result<void>> downloadInitialData() async {
+  Future<void> downloadCatalog({required String prefix}) async {
     try {
-      // Placeholder for actual synchronization implementation.
+      developer.log('Descargando catálogo para $prefix', name: 'SyncRemoteDataSource');
       await Future<void>.delayed(const Duration(milliseconds: 300));
-      return const Success<void>(null);
-    } catch (error) {
-      return FailureResult<void>(Failure('Error al descargar información', cause: error));
+    } catch (error, stackTrace) {
+      developer.log('Error al descargar catálogo', name: 'SyncRemoteDataSource', error: error, stackTrace: stackTrace);
+      rethrow;
     }
   }
 
   /// Synchronizes pending changes captured offline.
-  Future<Result<void>> syncPendingChanges() async {
+  Future<void> syncLocalSales({required String prefix}) async {
     try {
+      developer.log('Sincronizando ventas locales de $prefix', name: 'SyncRemoteDataSource');
       await Future<void>.delayed(const Duration(milliseconds: 300));
-      return const Success<void>(null);
-    } catch (error) {
-      return FailureResult<void>(Failure('No fue posible sincronizar los datos', cause: error));
+    } catch (error, stackTrace) {
+      developer.log('Error al sincronizar ventas', name: 'SyncRemoteDataSource', error: error, stackTrace: stackTrace);
+      rethrow;
     }
   }
 }
