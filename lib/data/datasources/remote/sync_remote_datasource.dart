@@ -8,9 +8,9 @@ class SyncRemoteDataSource {
     try {
       // Placeholder for actual synchronization implementation.
       await Future<void>.delayed(const Duration(milliseconds: 300));
-      return const Success(null);
+      return const Success<void>(null);
     } catch (error) {
-      return FailureResult(Failure('Error al descargar información', cause: error));
+      return FailureResult<void>(Failure('Error al descargar información', cause: error));
     }
   }
 
@@ -18,9 +18,9 @@ class SyncRemoteDataSource {
   Future<Result<void>> syncPendingChanges() async {
     try {
       await Future<void>.delayed(const Duration(milliseconds: 300));
-      return const Success(null);
+      return const Success<void>(null);
     } catch (error) {
-      return FailureResult(Failure('No fue posible sincronizar los datos', cause: error));
+      return FailureResult<void>(Failure('No fue posible sincronizar los datos', cause: error));
     }
   }
 }
