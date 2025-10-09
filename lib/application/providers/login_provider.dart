@@ -2,6 +2,7 @@ import 'package:aplicacion_ventas/application/services/login_service.dart';
 import 'package:aplicacion_ventas/application/services/sync_service.dart';
 import 'package:aplicacion_ventas/data/datasources/remote/sync_remote_datasource.dart';
 import 'package:aplicacion_ventas/domain/entities/user.dart';
+import 'package:aplicacion_ventas/utils/rut_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final loginServiceProvider = Provider<LoginService>((ref) {
@@ -79,8 +80,9 @@ class LoginController extends StateNotifier<LoginState> {
   final SyncService _syncService;
 
   Future<bool> login(String rut, String password) async {
+    final normalizedRut = RutUtils.toDatabaseFormat(rut);
     state = state.copyWith(isLoggingIn: true, resetMessages: true);
-    final result = await _loginService.authenticate(rut: rut, password: password);
+    final result = await _loginService.authenticate(rut: normalizedRut, password: password);
     var wasSuccessful = false;
     state = result.fold(
       failure: (failure) => state.copyWith(
@@ -103,8 +105,9 @@ class LoginController extends StateNotifier<LoginState> {
   }
 
   Future<bool> synchronizeSales(String rut) async {
+    final normalizedRut = RutUtils.toDatabaseFormat(rut);
     state = state.copyWith(isSyncing: true, resetMessages: true);
-    final result = await _syncService.syncLocalSales(rut: rut);
+    final result = await _syncService.syncLocalSales(rut: normalizedRut);
     var wasSuccessful = false;
     state = result.fold(
       failure: (failure) => state.copyWith(isSyncing: false, errorMessage: failure.message),
@@ -120,8 +123,9 @@ class LoginController extends StateNotifier<LoginState> {
   }
 
   Future<bool> downloadData(String rut) async {
+    final normalizedRut = RutUtils.toDatabaseFormat(rut);
     state = state.copyWith(isDownloading: true, resetMessages: true);
-    final result = await _syncService.downloadLatestData(rut: rut);
+    final result = await _syncService.downloadLatestData(rut: normalizedRut);
     var wasSuccessful = false;
     state = result.fold(
       failure: (failure) => state.copyWith(isDownloading: false, errorMessage: failure.message),

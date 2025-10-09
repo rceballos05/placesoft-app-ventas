@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
 import 'package:aplicacion_ventas/core/utils/screen_utils.dart';
 import 'package:aplicacion_ventas/presentation/pages/home_page.dart';
+import 'package:aplicacion_ventas/utils/rut_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -111,13 +112,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             children: [
                               TextFormField(
                                 controller: _rutController,
+                                keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
                                   labelText: 'RUT',
-                                  prefixIcon: Icon(Icons.badge_outlined),
+                                  hintText: 'Ej: 11.111.111-1',
+                                  prefixIcon: Icon(Icons.person),
+                                  border: OutlineInputBorder(),
                                 ),
+                                inputFormatters: [RutInputFormatter()],
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'El RUT es obligatorio';
+                                    return 'Ingrese su RUT';
+                                  }
+                                  if (!RutUtils.isValid(value)) {
+                                    return 'El RUT ingresado no es válido.';
                                   }
                                   return null;
                                 },
@@ -200,7 +208,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       return;
     }
     FocusScope.of(context).unfocus();
-    final rut = _rutController.text.trim();
+    final rut = RutUtils.toDatabaseFormat(_rutController.text);
     final password = _passwordController.text.trim();
     ref.read(loginControllerProvider.notifier).login(rut, password);
   }
@@ -210,7 +218,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       return;
     }
     _postLoginFlowRunning = true;
-    final rut = _rutController.text.trim();
+    final rut = RutUtils.toDatabaseFormat(_rutController.text);
     final controller = ref.read(loginControllerProvider.notifier);
     final loginMessage = state.infoMessage != null && state.infoMessage!.isNotEmpty
         ? state.infoMessage!

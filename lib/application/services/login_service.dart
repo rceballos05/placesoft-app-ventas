@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:aplicacion_ventas/core/utils/failure.dart';
 import 'package:aplicacion_ventas/core/utils/result.dart';
 import 'package:aplicacion_ventas/domain/entities/user.dart';
+import 'package:aplicacion_ventas/utils/rut_utils.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
@@ -41,16 +42,16 @@ class _CachedCredentials {
 
 class _RutData {
   const _RutData({
-    required this.body,
-    required this.dv,
+    required this.clean,
     required this.formatted,
+    required this.database,
   });
 
-  final String body;
-  final String dv;
+  final String clean;
   final String formatted;
+  final String database;
 
-  String get cacheKey => '$body$dv'.toLowerCase();
+  String get cacheKey => clean.toLowerCase();
 }
 
 /// Handles all the authentication workflow including offline fallbacks.
@@ -125,7 +126,7 @@ class LoginService {
     String? prefijo;
     if (hasInternet) {
       try {
-        prefijo = await obtenerPrefijo(rutData.formatted);
+        prefijo = await obtenerPrefijo(rutData.database);
       } on Failure catch (failure) {
         _lastFailure = failure;
       } catch (error, stackTrace) {
@@ -136,11 +137,11 @@ class LoginService {
 
     if (prefijo != null) {
       try {
-        final onlineOk = await loginOnline(prefijo, rutData.formatted, trimmedPassword);
+        final onlineOk = await loginOnline(prefijo, rutData.database, trimmedPassword);
         if (onlineOk) {
           await asegurarBaseLocal(prefijo);
           final databasePath = await _resolveLocalDatabase(prefijo);
-          final user = _onlineUserCache ?? User(rut: rutData.formatted, prefijo: prefijo);
+          final user = _onlineUserCache ?? User(rut: rutData.database, prefijo: prefijo);
           _lastLoginResult = LoginResult(
             user: user,
             databaseAssetPath: databasePath,
@@ -163,7 +164,7 @@ class LoginService {
     }
 
     developer.log('Intentando autenticación offline', name: 'LoginService');
-    final offlineOk = await loginOffline(rutData.formatted, trimmedPassword);
+    final offlineOk = await loginOffline(rutData.database, trimmedPassword);
     if (offlineOk) {
       final user = _offlineUserCache;
       if (user == null) {
@@ -192,7 +193,7 @@ class LoginService {
   /// Retrieves the company prefix associated to the provided [rut].
   Future<String?> obtenerPrefijo(String rut) async {
     final rutData = _normalizeRut(rut);
-    final uri = Uri.http(_baseUrl, '/api/Login/${rutData.formatted}');
+    final uri = Uri.http(_baseUrl, '/api/Login/${rutData.database}');
 
     try {
       developer.log('Solicitando prefijo remoto', name: 'LoginService');
@@ -243,14 +244,16 @@ class LoginService {
       if (items is List && items.isNotEmpty) {
         final item = items.first as Map<String, dynamic>;
         final responseRut = (item['rut'] as String?) ?? rut;
+        final normalizedRut = RutUtils.toDatabaseFormat(responseRut);
         final responsePrefix = (item['prefijo'] as String?) ?? prefijo;
-        _onlineUserCache = User(rut: responseRut, prefijo: responsePrefix);
-        await _updateLocalLoginDatabase(responseRut, responsePrefix, pass);
+        _onlineUserCache = User(rut: normalizedRut, prefijo: responsePrefix);
+        await _updateLocalLoginDatabase(normalizedRut, responsePrefix, pass);
       } else {
-        _onlineUserCache = User(rut: rut, prefijo: prefijo);
-        await _updateLocalLoginDatabase(rut, prefijo, pass);
+        final normalizedRut = RutUtils.toDatabaseFormat(rut);
+        _onlineUserCache = User(rut: normalizedRut, prefijo: prefijo);
+        await _updateLocalLoginDatabase(normalizedRut, prefijo, pass);
       }
-      developer.log('Login remoto exitoso para $rut', name: 'LoginService');
+      developer.log('Login remoto exitoso para ${RutUtils.format(rut)}', name: 'LoginService');
       return true;
     } on SocketException catch (error) {
       developer.log('Sin conexión durante login online', name: 'LoginService', error: error);
@@ -463,36 +466,16 @@ class LoginService {
   }
 
   _RutData _normalizeRut(String rut) {
-    final sanitized = rut.replaceAll(RegExp(r'[^0-9kK]'), '').toUpperCase();
-    if (sanitized.length < 2) {
-      throw Failure('RUT inválido');
+    final cleaned = RutUtils.clean(rut);
+    if (cleaned.length < 2) {
+      throw Failure('El RUT ingresado no es válido.');
     }
-    final body = sanitized.substring(0, sanitized.length - 1);
-    final dv = sanitized.substring(sanitized.length - 1);
-    final paddedBody = body.padLeft(8, '0');
-    final expectedDv = _calculateRutDv(paddedBody);
-    if (expectedDv != dv) {
-      throw Failure('RUT inválido');
+    if (!RutUtils.isValid(cleaned)) {
+      throw Failure('El RUT ingresado no es válido.');
     }
-    final formatted = '$paddedBody-$dv';
-    return _RutData(body: paddedBody, dv: dv, formatted: formatted);
-  }
-
-  String _calculateRutDv(String body) {
-    var sum = 0;
-    var multiplier = 2;
-    for (var i = body.length - 1; i >= 0; i--) {
-      sum += int.parse(body[i]) * multiplier;
-      multiplier = multiplier == 7 ? 2 : multiplier + 1;
-    }
-    final remainder = 11 - (sum % 11);
-    if (remainder == 11) {
-      return '0';
-    }
-    if (remainder == 10) {
-      return 'K';
-    }
-    return remainder.toString();
+    final formatted = RutUtils.format(cleaned);
+    final database = RutUtils.toDatabaseFormat(cleaned);
+    return _RutData(clean: cleaned, formatted: formatted, database: database);
   }
 
   String _cacheKeyFor(String rut) => '$_cachePrefix:$rut';
