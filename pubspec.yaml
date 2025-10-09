@@ -24,6 +24,7 @@ dependencies:
   flutter_email_sender: ^6.0.3
   sqflite: ^2.3.3+1
   connectivity_plus: ^6.0.3
+  flutter_riverpod: ^2.5.1
 
 dev_dependencies:
   flutter_test:
