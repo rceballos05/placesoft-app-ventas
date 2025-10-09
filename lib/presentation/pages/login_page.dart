@@ -22,8 +22,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _rememberMe = false;
 
   @override
-  void initState() {
-    super.initState();
+  void dispose() {
+    _rutController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     ref.listen(authControllerProvider, (previous, next) {
       if (previous?.user != next.user && next.user != null) {
         ref.read(syncServiceProvider).downloadInitialData().then((result) {
@@ -41,17 +47,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         );
       }
     });
-  }
 
-  @override
-  void dispose() {
-    _rutController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
     final state = ref.watch(authControllerProvider);
     final theme = Theme.of(context);
 
