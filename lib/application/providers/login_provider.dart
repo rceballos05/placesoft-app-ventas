@@ -1,12 +1,11 @@
 import 'package:aplicacion_ventas/application/services/login_service.dart';
 import 'package:aplicacion_ventas/application/services/sync_service.dart';
-import 'package:aplicacion_ventas/data/datasources/remote/auth_remote_datasource.dart';
 import 'package:aplicacion_ventas/data/datasources/remote/sync_remote_datasource.dart';
 import 'package:aplicacion_ventas/domain/entities/user.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final loginServiceProvider = Provider<LoginService>((ref) {
-  return LoginService(remoteDataSource: AuthRemoteDataSource());
+  return LoginService();
 });
 
 final syncServiceProvider = Provider<SyncService>((ref) {
@@ -79,9 +78,10 @@ class LoginController extends StateNotifier<LoginState> {
   final LoginService _loginService;
   final SyncService _syncService;
 
-  Future<void> login(String rut, String password) async {
+  Future<bool> login(String rut, String password) async {
     state = state.copyWith(isLoggingIn: true, resetMessages: true);
     final result = await _loginService.authenticate(rut: rut, password: password);
+    var wasSuccessful = false;
     state = result.fold(
       failure: (failure) => state.copyWith(
         isLoggingIn: false,
@@ -98,29 +98,41 @@ class LoginController extends StateNotifier<LoginState> {
             : 'Sesión iniciada correctamente',
       ),
     );
+    wasSuccessful = result.isSuccess;
+    return wasSuccessful;
   }
 
-  Future<void> synchronizeSales(String rut) async {
+  Future<bool> synchronizeSales(String rut) async {
     state = state.copyWith(isSyncing: true, resetMessages: true);
     final result = await _syncService.syncLocalSales(rut: rut);
+    var wasSuccessful = false;
     state = result.fold(
       failure: (failure) => state.copyWith(isSyncing: false, errorMessage: failure.message),
-      success: (_) => state.copyWith(
-        isSyncing: false,
-        infoMessage: 'Ventas sincronizadas correctamente',
-      ),
+      success: (_) {
+        wasSuccessful = true;
+        return state.copyWith(
+          isSyncing: false,
+          infoMessage: 'Ventas sincronizadas correctamente',
+        );
+      },
     );
+    return wasSuccessful;
   }
 
-  Future<void> downloadData(String rut) async {
+  Future<bool> downloadData(String rut) async {
     state = state.copyWith(isDownloading: true, resetMessages: true);
     final result = await _syncService.downloadLatestData(rut: rut);
+    var wasSuccessful = false;
     state = result.fold(
       failure: (failure) => state.copyWith(isDownloading: false, errorMessage: failure.message),
-      success: (_) => state.copyWith(
-        isDownloading: false,
-        infoMessage: 'Datos descargados correctamente',
-      ),
+      success: (_) {
+        wasSuccessful = true;
+        return state.copyWith(
+          isDownloading: false,
+          infoMessage: 'Datos descargados correctamente',
+        );
+      },
     );
+    return wasSuccessful;
   }
 }

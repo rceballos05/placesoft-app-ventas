@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
 import 'package:aplicacion_ventas/core/utils/screen_utils.dart';
 import 'package:aplicacion_ventas/presentation/pages/home_page.dart';
@@ -19,6 +21,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _rutController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _rememberMe = false;
+  bool _downloadAfterLogin = true;
+  bool _syncAfterLogin = false;
+  bool _postLoginFlowRunning = false;
+  bool _suppressDownloadAlerts = false;
+  bool _suppressSyncAlerts = false;
 
   @override
   void dispose() {
@@ -30,21 +37,34 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     ref.listen<LoginState>(loginControllerProvider, (previous, next) {
-      if (previous?.user != next.user && next.user != null) {
-        Navigator.of(context).pushReplacementNamed(HomePage.routeName);
+      if (previous?.isLoggingIn == true && next.isLoggingIn == false) {
+        if (next.user != null) {
+          Future<void>.microtask(() => _handleSuccessfulLogin(next));
+        } else if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
+          Future<void>.microtask(() => _mostrarAlertaErrorLogin(next.errorMessage!));
+        }
       }
 
-      if (next.errorMessage != null && next.errorMessage!.isNotEmpty && next.errorMessage != previous?.errorMessage) {
-        _showSnackBar(context, next.errorMessage!, isError: true);
+      if (!_suppressDownloadAlerts && previous?.isDownloading == true && next.isDownloading == false) {
+        if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
+          Future<void>.microtask(() => _mostrarAlertaErrorEnvio(next.errorMessage!));
+        } else if (next.infoMessage != null && next.infoMessage!.isNotEmpty) {
+          Future<void>.microtask(() => _mostrarAlertaOk(next.infoMessage!));
+        }
       }
 
-      if (next.infoMessage != null && next.infoMessage!.isNotEmpty && next.infoMessage != previous?.infoMessage) {
-        _showSnackBar(context, next.infoMessage!);
+      if (!_suppressSyncAlerts && previous?.isSyncing == true && next.isSyncing == false) {
+        if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
+          Future<void>.microtask(() => _mostrarAlertaErrorEnvio(next.errorMessage!));
+        } else if (next.infoMessage != null && next.infoMessage!.isNotEmpty) {
+          Future<void>.microtask(() => _mostrarAlertaOk(next.infoMessage!));
+        }
       }
     });
 
     final state = ref.watch(loginControllerProvider);
     final theme = Theme.of(context);
+    final isBusy = state.isLoggingIn || state.isDownloading || state.isSyncing;
 
     return Scaffold(
       body: LayoutBuilder(
@@ -54,7 +74,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             child: SingleChildScrollView(
               padding: context.horizontalPadding(isWide ? 0.18 : 0.08).copyWith(top: 48, bottom: 48),
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: isWide ? 520 : 400),
+                constraints: BoxConstraints(maxWidth: isWide ? 520 : 420),
                 child: Card(
                   elevation: 2,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -73,7 +93,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
+                        if (isBusy)
+                          const LinearProgressIndicator(minHeight: 3),
+                        if (isBusy) const SizedBox(height: 16),
                         if (state.isOffline)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 16),
@@ -124,56 +147,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 contentPadding: EdgeInsets.zero,
                                 title: const Text('Recordarme'),
                               ),
-                              const SizedBox(height: 24),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: state.isDownloading
-                                          ? null
-                                          : () => _handleDownload(ref),
-                                      icon: state.isDownloading
-                                          ? const SizedBox(
-                                              width: 18,
-                                              height: 18,
-                                              child: CircularProgressIndicator(strokeWidth: 2),
-                                            )
-                                          : const Icon(Icons.cloud_download_outlined),
-                                      label: const Text('Descargar Data'),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      onPressed: state.isSyncing
-                                          ? null
-                                          : () => _handleSync(ref),
-                                      icon: state.isSyncing
-                                          ? const SizedBox(
-                                              width: 18,
-                                              height: 18,
-                                              child: CircularProgressIndicator(strokeWidth: 2),
-                                            )
-                                          : const Icon(Icons.cloud_sync_outlined),
-                                      label: const Text('Sincronizar Data'),
-                                    ),
-                                  ),
-                                ],
+                              const Divider(height: 32),
+                              CheckboxListTile(
+                                value: _downloadAfterLogin,
+                                onChanged: state.isLoggingIn
+                                    ? null
+                                    : (value) => setState(() => _downloadAfterLogin = value ?? false),
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('Descargar Data'),
+                                subtitle: const Text('Obtiene la información actualizada antes de ingresar.'),
+                              ),
+                              CheckboxListTile(
+                                value: _syncAfterLogin,
+                                onChanged: state.isLoggingIn
+                                    ? null
+                                    : (value) => setState(() => _syncAfterLogin = value ?? false),
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('Sincronizar Data'),
+                                subtitle: const Text('Envía las ventas pendientes al iniciar sesión.'),
                               ),
                               const SizedBox(height: 24),
                               SizedBox(
                                 width: double.infinity,
                                 child: FilledButton(
-                                  onPressed: state.isLoggingIn
-                                      ? null
-                                      : () {
-                                          if (_formKey.currentState?.validate() ?? false) {
-                                            ref.read(loginControllerProvider.notifier).login(
-                                                  _rutController.text.trim(),
-                                                  _passwordController.text.trim(),
-                                                );
-                                          }
-                                        },
+                                  onPressed: state.isLoggingIn ? null : _onLoginPressed,
                                   child: state.isLoggingIn
                                       ? const SizedBox(
                                           width: 24,
@@ -183,15 +180,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                       : const Text('Iniciar sesión'),
                                 ),
                               ),
-                              if (state.errorMessage != null && state.errorMessage!.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 16),
-                                  child: Text(
-                                    state.errorMessage!,
-                                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
                             ],
                           ),
                         ),
@@ -207,29 +195,134 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
-  void _handleDownload(WidgetRef ref) {
-    final rut = _rutController.text.trim();
-    if (rut.isEmpty) {
-      _showSnackBar(context, 'Ingresa tu RUT para descargar datos', isError: true);
+  void _onLoginPressed() {
+    if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
-    ref.read(loginControllerProvider.notifier).downloadData(rut);
+    FocusScope.of(context).unfocus();
+    final rut = _rutController.text.trim();
+    final password = _passwordController.text.trim();
+    ref.read(loginControllerProvider.notifier).login(rut, password);
   }
 
-  void _handleSync(WidgetRef ref) {
-    final rut = _rutController.text.trim();
-    if (rut.isEmpty) {
-      _showSnackBar(context, 'Ingresa tu RUT para sincronizar', isError: true);
+  Future<void> _handleSuccessfulLogin(LoginState state) async {
+    if (!mounted || _postLoginFlowRunning) {
       return;
     }
-    ref.read(loginControllerProvider.notifier).synchronizeSales(rut);
+    _postLoginFlowRunning = true;
+    final rut = _rutController.text.trim();
+    final controller = ref.read(loginControllerProvider.notifier);
+    final loginMessage = state.infoMessage != null && state.infoMessage!.isNotEmpty
+        ? state.infoMessage!
+        : state.isOffline
+            ? 'Sesión iniciada en modo offline'
+            : 'Sesión iniciada correctamente';
+
+    var hasErrors = false;
+
+    try {
+      if (_downloadAfterLogin) {
+        _suppressDownloadAlerts = true;
+        try {
+          final success = await controller.downloadData(rut);
+          final latestState = ref.read(loginControllerProvider);
+          if (!success && latestState.errorMessage != null && latestState.errorMessage!.isNotEmpty) {
+            hasErrors = true;
+            await _mostrarAlertaErrorEnvio(latestState.errorMessage!);
+          }
+        } finally {
+          _suppressDownloadAlerts = false;
+        }
+      }
+
+      if (_syncAfterLogin) {
+        _suppressSyncAlerts = true;
+        try {
+          final success = await controller.synchronizeSales(rut);
+          final latestState = ref.read(loginControllerProvider);
+          if (!success && latestState.errorMessage != null && latestState.errorMessage!.isNotEmpty) {
+            hasErrors = true;
+            await _mostrarAlertaErrorEnvio(latestState.errorMessage!);
+          }
+        } finally {
+          _suppressSyncAlerts = false;
+        }
+      }
+
+      if (loginMessage.isNotEmpty) {
+        await _mostrarAlertaOk(loginMessage);
+      }
+
+      if (!hasErrors && _downloadAfterLogin) {
+        final latestState = ref.read(loginControllerProvider);
+        final infoMessage = latestState.infoMessage;
+        if (infoMessage != null && infoMessage.isNotEmpty && infoMessage != loginMessage) {
+          await _mostrarAlertaOk(infoMessage);
+        }
+      }
+    } finally {
+      _postLoginFlowRunning = false;
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed(HomePage.routeName);
+      }
+    }
   }
 
-  void _showSnackBar(BuildContext context, String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+  Future<void> _mostrarAlertaOk(String message) async {
+    if (!mounted || message.isEmpty) {
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Información'),
         content: Text(message),
-        backgroundColor: isError ? Theme.of(context).colorScheme.error : null,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Aceptar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _mostrarAlertaErrorLogin(String message) async {
+    if (!mounted || message.isEmpty) {
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Error al iniciar sesión'),
+        content: Text(message),
+        icon: const Icon(Icons.error_outline, color: Colors.redAccent),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _mostrarAlertaErrorEnvio(String message) async {
+    if (!mounted || message.isEmpty) {
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Proceso incompleto'),
+        content: Text(message),
+        icon: const Icon(Icons.warning_amber, color: Colors.orange),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Aceptar'),
+          ),
+        ],
       ),
     );
   }
