@@ -1,4 +1,5 @@
 import 'package:aplicacion_ventas/core/utils/result.dart';
+import 'package:aplicacion_ventas/data/datasources/remote/product_remote_datasource.dart';
 import 'package:aplicacion_ventas/data/repositories/product_repository_impl.dart';
 import 'package:aplicacion_ventas/domain/entities/product.dart';
 import 'package:aplicacion_ventas/domain/usecases/fetch_products_usecase.dart';
@@ -46,7 +47,10 @@ class ProductController extends StateNotifier<ProductState> {
   }
 }
 
-final productRepositoryProvider = Provider((ref) => ProductRepositoryImpl());
+final productRemoteDataSourceProvider = Provider((ref) => ProductRemoteDataSource());
+final productRepositoryProvider = Provider(
+  (ref) => ProductRepositoryImpl(remoteDataSource: ref.watch(productRemoteDataSourceProvider)),
+);
 final fetchProductsUseCaseProvider =
     Provider((ref) => FetchProductsUseCase(ref.watch(productRepositoryProvider)));
 final productControllerProvider = StateNotifierProvider<ProductController, ProductState>(

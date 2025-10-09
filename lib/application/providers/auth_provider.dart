@@ -1,4 +1,5 @@
 import 'package:aplicacion_ventas/core/utils/result.dart';
+import 'package:aplicacion_ventas/data/datasources/remote/auth_remote_datasource.dart';
 import 'package:aplicacion_ventas/data/repositories/auth_repository_impl.dart';
 import 'package:aplicacion_ventas/domain/entities/user.dart';
 import 'package:aplicacion_ventas/domain/usecases/login_usecase.dart';
@@ -41,7 +42,10 @@ class AuthController extends StateNotifier<AuthState> {
   }
 }
 
-final authRepositoryProvider = Provider((ref) => AuthRepositoryImpl());
+final authRemoteDataSourceProvider = Provider((ref) => AuthRemoteDataSource());
+final authRepositoryProvider = Provider(
+  (ref) => AuthRepositoryImpl(remoteDataSource: ref.watch(authRemoteDataSourceProvider)),
+);
 final loginUseCaseProvider = Provider((ref) => LoginUseCase(ref.watch(authRepositoryProvider)));
 final authControllerProvider = StateNotifierProvider<AuthController, AuthState>(
   (ref) => AuthController(ref.watch(loginUseCaseProvider)),

@@ -1,4 +1,4 @@
-import 'package:aplicacion_ventas/core/errors/failure.dart';
+import 'package:aplicacion_ventas/core/utils/failure.dart';
 
 /// Represents either a success or a failure when executing async operations.
 sealed class Result<T> {

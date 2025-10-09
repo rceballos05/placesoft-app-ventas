@@ -1,8 +1,8 @@
-import 'package:aplicacion_ventas/core/errors/failure.dart';
+import 'package:aplicacion_ventas/core/utils/failure.dart';
 import 'package:aplicacion_ventas/core/utils/result.dart';
 
 /// Handles synchronization tasks with offline databases and remote APIs.
-class SyncService {
+class SyncRemoteDataSource {
   /// Downloads data required for offline usage.
   Future<Result<void>> downloadInitialData() async {
     try {
