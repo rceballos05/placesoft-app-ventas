@@ -1,13 +1,13 @@
 import 'package:animated_theme_switcher/animated_theme_switcher.dart';
-import 'package:aplicacion_ventas/pages/agregar_cliente_page.dart';
-import 'package:aplicacion_ventas/pages/agregar_destino_page.dart';
-import 'package:aplicacion_ventas/pages/historial_page.dart';
-import 'package:aplicacion_ventas/pages/login.dart';
-import 'package:aplicacion_ventas/pages/modificar_cliente_page.dart';
-import 'package:aplicacion_ventas/pages/modificar_datos_page.dart';
+import 'package:aplicacion_ventas/presentation/pages/agregar_cliente_page.dart';
+import 'package:aplicacion_ventas/presentation/pages/agregar_destino_page.dart';
+import 'package:aplicacion_ventas/presentation/pages/historial_page.dart';
+import 'package:aplicacion_ventas/presentation/pages/login.dart';
+import 'package:aplicacion_ventas/presentation/pages/modificar_cliente_page.dart';
+import 'package:aplicacion_ventas/presentation/pages/modificar_datos_page.dart';
+import 'package:aplicacion_ventas/presentation/widgets/busqueda_cliente.dart';
+import 'package:aplicacion_ventas/presentation/widgets/profile_list_item.dart';
 import 'package:aplicacion_ventas/statics/globals.dart';
-import 'package:aplicacion_ventas/widgets/busqueda_cliente.dart';
-import 'package:aplicacion_ventas/widgets/profile_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 

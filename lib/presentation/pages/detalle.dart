@@ -8,8 +8,8 @@ import 'package:aplicacion_ventas/db/db_precios.dart';
 import 'package:aplicacion_ventas/db/productos.dart';
 import 'package:aplicacion_ventas/domain/entities/product.dart' as domain;
 import 'package:aplicacion_ventas/models/producto.dart';
-import 'package:aplicacion_ventas/pages/cart_page.dart';
-import 'package:aplicacion_ventas/widgets/busqueda_producto.dart';
+import 'package:aplicacion_ventas/presentation/pages/cart_page.dart';
+import 'package:aplicacion_ventas/presentation/widgets/busqueda_producto.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,6 +28,8 @@ class Detalle extends ConsumerStatefulWidget {
   final String? codigo;
   final String? busquedaInicial;
   final bool fromBusqueda;
+
+  static const routeName = '/detalle';
 
   @override
   ConsumerState<Detalle> createState() => _DetalleState();
