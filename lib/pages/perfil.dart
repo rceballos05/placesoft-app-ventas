@@ -1,12 +1,21 @@
 import 'package:animated_theme_switcher/animated_theme_switcher.dart';
+import 'package:aplicacion_ventas/pages/agregar_cliente_page.dart';
+import 'package:aplicacion_ventas/pages/agregar_destino_page.dart';
+import 'package:aplicacion_ventas/pages/historial_page.dart';
+import 'package:aplicacion_ventas/pages/login.dart';
+import 'package:aplicacion_ventas/pages/modificar_cliente_page.dart';
+import 'package:aplicacion_ventas/pages/modificar_datos_page.dart';
 import 'package:aplicacion_ventas/statics/globals.dart';
 import 'package:aplicacion_ventas/widgets/busqueda_cliente.dart';
 import 'package:aplicacion_ventas/widgets/profile_list_item.dart';
 import 'package:flutter/material.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 
+/// Pantalla de perfil del usuario con accesos directos a distintas gestiones.
 class Perfil extends StatefulWidget {
   const Perfil({super.key});
+
+  static const routeName = '/perfil';
 
   @override
   State<Perfil> createState() => _PerfilState();
@@ -167,27 +176,27 @@ class _PerfilState extends State<Perfil> with SingleTickerProviderStateMixin {
           ProfileListItem(
             icon: LineAwesomeIcons.user,
             text: 'Mostrar Datos',
-            onTap: () => Navigator.pushNamed(context, '/modificar-datos'),
+            onTap: () => Navigator.pushNamed(context, ModificarDatosPage.routeName),
           ),
           ProfileListItem(
             icon: LineAwesomeIcons.history,
             text: 'Historial de Ventas',
-            onTap: () => Navigator.pushNamed(context, '/historial'),
+            onTap: () => Navigator.pushNamed(context, HistorialPage.routeName),
           ),
           ProfileListItem(
             icon: LineAwesomeIcons.user_plus,
             text: 'Agregar Cliente',
-            onTap: () => Navigator.pushNamed(context, '/agregar-cliente'),
+            onTap: () => Navigator.pushNamed(context, AgregarClientePage.routeName),
           ),
           ProfileListItem(
             icon: LineAwesomeIcons.user_edit,
             text: 'Modificar Cliente',
-            onTap: () => Navigator.pushNamed(context, '/modificar-cliente'),
+            onTap: () => Navigator.pushNamed(context, ModificarClientePage.routeName),
           ),
           ProfileListItem(
             icon: LineAwesomeIcons.map_marker,
             text: 'Agregar Destino Cliente',
-            onTap: () => Navigator.pushNamed(context, '/agregar-destino'),
+            onTap: () => Navigator.pushNamed(context, AgregarDestinoPage.routeName),
           ),
           ProfileListItem(
             icon: LineAwesomeIcons.key,
@@ -226,7 +235,11 @@ class _PerfilState extends State<Perfil> with SingleTickerProviderStateMixin {
       user = null;
       clienteVenta = null;
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        LoginPage.routeName,
+        (_) => false,
+      );
     }
   }
 

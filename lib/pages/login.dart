@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
 import 'package:aplicacion_ventas/core/utils/screen_utils.dart';
-import 'package:aplicacion_ventas/presentation/pages/home_page.dart';
+import 'package:aplicacion_ventas/pages/home_page.dart';
 import 'package:aplicacion_ventas/utils/rut_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

@@ -8,7 +8,8 @@ import 'package:aplicacion_ventas/db/productos.dart';
 import 'package:aplicacion_ventas/db/precios.dart';
 import 'package:aplicacion_ventas/domain/entities/product.dart';
 import 'package:aplicacion_ventas/models/producto.dart';
-import 'package:aplicacion_ventas/presentation/pages/cart_page.dart';
+import 'package:aplicacion_ventas/pages/cart_page.dart';
+import 'package:aplicacion_ventas/pages/perfil.dart';
 import 'package:aplicacion_ventas/widgets/busqueda_producto.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
@@ -427,6 +428,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         onTap: (index) {
           if (index == 1) {
             Navigator.of(context).pushNamed(CartPage.routeName);
+          } else if (index == 2) {
+            Navigator.of(context).pushNamed(Perfil.routeName);
           }
         },
       ),
