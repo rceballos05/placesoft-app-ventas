@@ -1,3 +1,4 @@
+import 'package:aplicacion_ventas/pages/product_list_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/agregar_cliente_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/agregar_destino_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/cart_page.dart';
@@ -17,6 +18,7 @@ class AppRouter {
   /// Default route table mapping each page route name to its builder.
   static Map<String, WidgetBuilder> get routes => {
         LoginPage.routeName: (context) => const LoginPage(),
+        ProductListPage.routeName: (context) => const ProductListPage(),
         HomePage.routeName: (context) => const HomePage(),
         CartPage.routeName: (context) => const CartPage(),
         Perfil.routeName: (context) => const Perfil(),
