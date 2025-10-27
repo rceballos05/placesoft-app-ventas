@@ -44,8 +44,10 @@ class _DetalleState extends ConsumerState<Detalle> {
     symbolSeparator: ' ',
   );
 
-  final TextEditingController _quantityController = TextEditingController(text: '1');
-  final TextEditingController _discountController = TextEditingController(text: '0');
+  final TextEditingController _quantityController =
+      TextEditingController(text: '1');
+  final TextEditingController _discountController =
+      TextEditingController(text: '0');
   final TextEditingController _notesController = TextEditingController();
 
   late Future<_ProductDetail> _detailFuture;
@@ -109,7 +111,8 @@ class _DetalleState extends ConsumerState<Detalle> {
       final detalle = _ProductDetail(
         producto: Producto(
           codigobarra: code,
-          descripcion: descripcion.isEmpty ? 'Producto sin nombre' : descripcion,
+          descripcion:
+              descripcion.isEmpty ? 'Producto sin nombre' : descripcion,
           precio: precio,
           descuento: descuentoPermitido.toInt(),
         ),
@@ -175,7 +178,7 @@ class _DetalleState extends ConsumerState<Detalle> {
 
     setState(() {
       _subtotal = subtotal;
-      _discountPercent = appliedDiscount;
+      _discountPercent = appliedDiscount.toDouble();
       _discountValue = discountValue;
       _total = total;
     });
@@ -209,7 +212,8 @@ class _DetalleState extends ConsumerState<Detalle> {
     _quantity = parsed.clamp(1, 999);
     if (_quantity.toString() != value) {
       _quantityController.text = _quantity.toString();
-      _quantityController.selection = TextSelection.collapsed(offset: _quantityController.text.length);
+      _quantityController.selection =
+          TextSelection.collapsed(offset: _quantityController.text.length);
     }
     _recalculateTotals();
   }
@@ -217,19 +221,23 @@ class _DetalleState extends ConsumerState<Detalle> {
   void _onDiscountChanged(String value) {
     if (_isSaving) return;
     final trimmed = value.trim();
-    final parsed = trimmed.isEmpty ? 0.0 : double.tryParse(trimmed.replaceAll(',', '.'));
+    final parsed =
+        trimmed.isEmpty ? 0.0 : double.tryParse(trimmed.replaceAll(',', '.'));
     if (parsed == null) {
       _discountController.text = _discountPercent.toStringAsFixed(0);
-      _discountController.selection = TextSelection.collapsed(offset: _discountController.text.length);
+      _discountController.selection =
+          TextSelection.collapsed(offset: _discountController.text.length);
       return;
     }
     final capped = parsed.clamp(0, _maxDiscount);
     if (capped != parsed) {
       _discountController.text = capped.toStringAsFixed(0);
-      _discountController.selection = TextSelection.collapsed(offset: _discountController.text.length);
-      _showError('El descuento no puede superar el ${_maxDiscount.toStringAsFixed(0)}%.');
+      _discountController.selection =
+          TextSelection.collapsed(offset: _discountController.text.length);
+      _showError(
+          'El descuento no puede superar el ${_maxDiscount.toStringAsFixed(0)}%.');
     }
-    _discountPercent = capped;
+    _discountPercent = capped.toDouble();
     _recalculateTotals();
   }
 
@@ -269,7 +277,9 @@ class _DetalleState extends ConsumerState<Detalle> {
     try {
       final now = DateTime.now();
       final lineNumber = await DBRollo.getNextLineNumber();
-      final unitPriceWithDiscount = _quantity > 0 ? (_total / _quantity).roundToDouble() : _total.toDouble();
+      final unitPriceWithDiscount = _quantity > 0
+          ? (_total / _quantity).roundToDouble()
+          : _total.toDouble();
       final transactionDate = now.toIso8601String();
       final time = _formatTime(now);
       final loginState = ref.read(loginControllerProvider);
@@ -332,7 +342,8 @@ class _DetalleState extends ConsumerState<Detalle> {
       Navigator.pushNamed(context, CartPage.routeName);
     } catch (error) {
       if (!mounted) return;
-      _showError('No se pudo agregar el producto al carrito. Inténtalo nuevamente.');
+      _showError(
+          'No se pudo agregar el producto al carrito. Inténtalo nuevamente.');
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
@@ -380,11 +391,14 @@ class _DetalleState extends ConsumerState<Detalle> {
                   future: _detailFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: Colors.white));
+                      return const Center(
+                          child:
+                              CircularProgressIndicator(color: Colors.white));
                     }
                     if (snapshot.hasError) {
                       return _ErrorView(
-                        message: 'No se pudo cargar la información del producto.',
+                        message:
+                            'No se pudo cargar la información del producto.',
                         onRetry: _retry,
                       );
                     }
@@ -629,7 +643,8 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final totalText = CurrencyFormatter.format(total, currencySettings);
-    final discountText = CurrencyFormatter.format(discountValue, currencySettings);
+    final discountText =
+        CurrencyFormatter.format(discountValue, currencySettings);
 
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(20, 12, 20, 20),
@@ -672,7 +687,8 @@ class _BottomBar extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         '-$discountText (${discountPercent.toStringAsFixed(0)}%)',
-                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: Colors.white70),
                       ),
                     ),
                 ],
@@ -694,7 +710,8 @@ class _BottomBar extends StatelessWidget {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
                       )
                     : Row(
                         mainAxisSize: MainAxisSize.min,
@@ -744,7 +761,8 @@ class _ProductImage extends StatelessWidget {
           placeholder: 'assets/img/producto.png',
           image: imageUrl!,
           fit: BoxFit.cover,
-          imageErrorBuilder: (_, __, ___) => Image.asset('assets/img/producto.png', fit: BoxFit.cover),
+          imageErrorBuilder: (_, __, ___) =>
+              Image.asset('assets/img/producto.png', fit: BoxFit.cover),
         ),
       );
     } else {
@@ -884,12 +902,14 @@ class _DiscountField extends StatelessWidget {
             filled: true,
             fillColor: Colors.white.withOpacity(0.16),
             suffixText: '%',
-            suffixStyle: theme.textTheme.titleMedium?.copyWith(color: Colors.white70),
+            suffixStyle:
+                theme.textTheme.titleMedium?.copyWith(color: Colors.white70),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: BorderSide.none,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           ),
         ),
       ],
@@ -926,16 +946,19 @@ class _NotesField extends StatelessWidget {
             fontWeight: FontWeight.w500,
           ),
           decoration: InputDecoration(
-            counterStyle: theme.textTheme.labelSmall?.copyWith(color: Colors.white70),
+            counterStyle:
+                theme.textTheme.labelSmall?.copyWith(color: Colors.white70),
             hintText: 'Agregar indicaciones para el despacho…',
-            hintStyle: theme.textTheme.bodyLarge?.copyWith(color: Colors.white54),
+            hintStyle:
+                theme.textTheme.bodyLarge?.copyWith(color: Colors.white54),
             filled: true,
             fillColor: Colors.white.withOpacity(0.16),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: BorderSide.none,
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           ),
         ),
       ],
@@ -986,7 +1009,8 @@ class _SummaryCard extends StatelessWidget {
           if (discountValue > 0)
             _SummaryRow(
               label: 'Descuento (${discountPercent.toStringAsFixed(0)}%)',
-              value: '-${CurrencyFormatter.format(discountValue, currencySettings)}',
+              value:
+                  '-${CurrencyFormatter.format(discountValue, currencySettings)}',
               highlighted: true,
             ),
           const Divider(color: Colors.white24, height: 24),
@@ -1188,7 +1212,8 @@ class DBRollo {
   static Future<int> getNextLineNumber() async {
     final db = await _open();
     try {
-      final result = await db.rawQuery('SELECT MAX(linea_venta) as max_line FROM $_tableName');
+      final result = await db
+          .rawQuery('SELECT MAX(linea_venta) as max_line FROM $_tableName');
       var current = 0;
       if (result.isNotEmpty) {
         final value = result.first['max_line'];

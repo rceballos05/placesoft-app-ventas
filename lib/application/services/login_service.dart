@@ -9,6 +9,7 @@ import 'package:aplicacion_ventas/domain/entities/user.dart';
 import 'package:aplicacion_ventas/utils/rut_utils.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -64,7 +65,7 @@ class LoginService {
   final Connectivity _connectivity;
 
   static const _cachePrefix = 'login_cache';
-  static const _baseUrl = '192.168.1.3:7177';
+  static const _baseUrl = '45.236.164.152:80';
   static const _httpTimeout = Duration(seconds: 15);
 
   LoginResult? _lastLoginResult;
@@ -73,7 +74,8 @@ class LoginService {
   User? _offlineUserCache;
 
   /// Attempts to authenticate the user using either the remote API or local cache.
-  Future<Result<LoginResult>> authenticate({required String rut, required String password}) async {
+  Future<Result<LoginResult>> authenticate(
+      {required String rut, required String password}) async {
     _lastLoginResult = null;
     _lastFailure = null;
     _onlineUserCache = null;
@@ -86,13 +88,17 @@ class LoginService {
       if (success && _lastLoginResult != null) {
         return Success<LoginResult>(_lastLoginResult!);
       }
-      return FailureResult<LoginResult>(_lastFailure ?? Failure('No fue posible iniciar sesión'));
+      return FailureResult<LoginResult>(
+          _lastFailure ?? Failure('No fue posible iniciar sesión'));
     } on Failure catch (failure, stackTrace) {
-      developer.log('Fallo en autenticación', name: 'LoginService', error: failure, stackTrace: stackTrace);
+      developer.log('Fallo en autenticación',
+          name: 'LoginService', error: failure, stackTrace: stackTrace);
       return FailureResult<LoginResult>(failure);
     } catch (error, stackTrace) {
-      developer.log('Error inesperado durante login', name: 'LoginService', error: error, stackTrace: stackTrace);
-      return FailureResult<LoginResult>(Failure('No fue posible iniciar sesión', cause: error));
+      developer.log('Error inesperado durante login',
+          name: 'LoginService', error: error, stackTrace: stackTrace);
+      return FailureResult<LoginResult>(
+          Failure('No fue posible iniciar sesión', cause: error));
     }
   }
 
@@ -117,11 +123,13 @@ class LoginService {
       return false;
     }
 
-    developer.log('RUT normalizado: ${rutData.formatted}', name: 'LoginService');
+    developer.log('RUT normalizado: ${rutData.formatted}',
+        name: 'LoginService');
 
     final connectivityResult = await _connectivity.checkConnectivity();
     final hasInternet = connectivityResult != ConnectivityResult.none;
-    developer.log('Conectividad detectada: $connectivityResult', name: 'LoginService');
+    developer.log('Conectividad detectada: $connectivityResult',
+        name: 'LoginService');
 
     String? prefijo;
     if (hasInternet) {
@@ -130,18 +138,22 @@ class LoginService {
       } on Failure catch (failure) {
         _lastFailure = failure;
       } catch (error, stackTrace) {
-        developer.log('Error obteniendo prefijo remoto', name: 'LoginService', error: error, stackTrace: stackTrace);
-        _lastFailure = Failure('Error al obtener prefijo del servidor', cause: error);
+        developer.log('Error obteniendo prefijo remoto',
+            name: 'LoginService', error: error, stackTrace: stackTrace);
+        _lastFailure =
+            Failure('Error al obtener prefijo del servidor', cause: error);
       }
     }
 
     if (prefijo != null) {
       try {
-        final onlineOk = await loginOnline(prefijo, rutData.database, trimmedPassword);
+        final onlineOk =
+            await loginOnline(prefijo, rutData.database, trimmedPassword);
         if (onlineOk) {
           await asegurarBaseLocal(prefijo);
           final databasePath = await _resolveLocalDatabase(prefijo);
-          final user = _onlineUserCache ?? User(rut: rutData.database, prefijo: prefijo);
+          final user =
+              _onlineUserCache ?? User(rut: rutData.database, prefijo: prefijo);
           _lastLoginResult = LoginResult(
             user: user,
             databaseAssetPath: databasePath,
@@ -155,11 +167,14 @@ class LoginService {
           return true;
         }
       } on Failure catch (failure) {
-        developer.log('Fallo en login online', name: 'LoginService', error: failure);
+        developer.log('Fallo en login online',
+            name: 'LoginService', error: failure);
         _lastFailure = failure;
       } catch (error, stackTrace) {
-        developer.log('Error inesperado en login online', name: 'LoginService', error: error, stackTrace: stackTrace);
-        _lastFailure = Failure('No fue posible validar credenciales en línea', cause: error);
+        developer.log('Error inesperado en login online',
+            name: 'LoginService', error: error, stackTrace: stackTrace);
+        _lastFailure = Failure('No fue posible validar credenciales en línea',
+            cause: error);
       }
     }
 
@@ -216,20 +231,25 @@ class LoginService {
       }
       return prefijo;
     } on SocketException catch (error) {
-      developer.log('Sin conexión al obtener prefijo', name: 'LoginService', error: error);
+      developer.log('Sin conexión al obtener prefijo',
+          name: 'LoginService', error: error);
       throw Failure('No hay conexión a internet', cause: error);
     } on TimeoutException catch (error) {
-      developer.log('Timeout al obtener prefijo', name: 'LoginService', error: error);
-      throw Failure('Tiempo de espera agotado al obtener prefijo', cause: error);
+      developer.log('Timeout al obtener prefijo',
+          name: 'LoginService', error: error);
+      throw Failure('Tiempo de espera agotado al obtener prefijo',
+          cause: error);
     } on FormatException catch (error) {
-      developer.log('Formato inválido al obtener prefijo', name: 'LoginService', error: error);
+      developer.log('Formato inválido al obtener prefijo',
+          name: 'LoginService', error: error);
       throw Failure('Respuesta inválida del servidor', cause: error);
     }
   }
 
   /// Validates the credentials against the remote API.
   Future<bool> loginOnline(String prefijo, String rut, String pass) async {
-    final uri = Uri.http(_baseUrl, 'api/Login/$prefijo/iniciar-sesion/$rut/$pass');
+    final uri =
+        Uri.http(_baseUrl, 'api/Login/$prefijo/iniciar-sesion/$rut/$pass');
 
     try {
       final response = await _httpClient.get(uri).timeout(_httpTimeout);
@@ -253,16 +273,20 @@ class LoginService {
         _onlineUserCache = User(rut: normalizedRut, prefijo: prefijo);
         await _updateLocalLoginDatabase(normalizedRut, prefijo, pass);
       }
-      developer.log('Login remoto exitoso para ${RutUtils.format(rut)}', name: 'LoginService');
+      developer.log('Login remoto exitoso para ${RutUtils.format(rut)}',
+          name: 'LoginService');
       return true;
     } on SocketException catch (error) {
-      developer.log('Sin conexión durante login online', name: 'LoginService', error: error);
+      developer.log('Sin conexión durante login online',
+          name: 'LoginService', error: error);
       throw Failure('No hay conexión a internet', cause: error);
     } on TimeoutException catch (error) {
-      developer.log('Timeout durante login online', name: 'LoginService', error: error);
+      developer.log('Timeout durante login online',
+          name: 'LoginService', error: error);
       throw Failure('Tiempo de espera agotado durante login', cause: error);
     } on FormatException catch (error) {
-      developer.log('Formato inválido en login online', name: 'LoginService', error: error);
+      developer.log('Formato inválido en login online',
+          name: 'LoginService', error: error);
       throw Failure('Respuesta inválida del servidor', cause: error);
     }
   }
@@ -273,13 +297,15 @@ class LoginService {
       final loginDbPath = await _prepareLoginDatabase();
       final db = await openDatabase(loginDbPath, readOnly: true);
       try {
-        final results = await db.query('login', where: 'rut = ?', whereArgs: <Object>[rut]);
+        final results =
+            await db.query('login', where: 'rut = ?', whereArgs: <Object>[rut]);
         if (results.isNotEmpty) {
           final row = results.first;
           final storedPassword = (row['password'] as String?) ?? '';
           final prefix = (row['prefijo'] as String?) ?? '';
           final hashedIncoming = _hashPassword(pass);
-          if (prefix.isNotEmpty && (storedPassword == pass || storedPassword == hashedIncoming)) {
+          if (prefix.isNotEmpty &&
+              (storedPassword == pass || storedPassword == hashedIncoming)) {
             _offlineUserCache = User(rut: rut, prefijo: prefix);
             return true;
           }
@@ -288,27 +314,33 @@ class LoginService {
         await db.close();
       }
 
-      final cachedCredentials = await _loadCachedCredentials(_normalizeRut(rut).cacheKey);
+      final cachedCredentials =
+          await _loadCachedCredentials(_normalizeRut(rut).cacheKey);
       if (cachedCredentials == null) {
-        developer.log('No se encontraron credenciales cacheadas para $rut', name: 'LoginService');
+        developer.log('No se encontraron credenciales cacheadas para $rut',
+            name: 'LoginService');
         return false;
       }
       final incomingHash = _hashPassword(pass);
       if (cachedCredentials.passwordHash != incomingHash) {
-        developer.log('La contraseña cacheada no coincide', name: 'LoginService');
+        developer.log('La contraseña cacheada no coincide',
+            name: 'LoginService');
         return false;
       }
       _offlineUserCache = User(rut: rut, prefijo: cachedCredentials.prefix);
       return true;
     } on DatabaseException catch (error) {
-      developer.log('Error accediendo a la base de login offline', name: 'LoginService', error: error);
+      developer.log('Error accediendo a la base de login offline',
+          name: 'LoginService', error: error);
       return false;
     } on Failure catch (failure) {
-      developer.log('Fallo validando credenciales offline', name: 'LoginService', error: failure);
+      developer.log('Fallo validando credenciales offline',
+          name: 'LoginService', error: failure);
       _lastFailure = failure;
       return false;
     } catch (error, stackTrace) {
-      developer.log('Error inesperado en login offline', name: 'LoginService', error: error, stackTrace: stackTrace);
+      developer.log('Error inesperado en login offline',
+          name: 'LoginService', error: error, stackTrace: stackTrace);
       return false;
     }
   }
@@ -321,7 +353,9 @@ class LoginService {
     }
 
     final databasesPath = await getDatabasesPath();
-    await _copyAssetIfNeeded('assets/database/login.db', p.join(databasesPath, 'login.db'), required: true);
+    await _copyAssetIfNeeded(
+        'assets/database/login.db', p.join(databasesPath, 'login.db'),
+        required: true);
 
     final prefixDir = Directory(p.join(databasesPath, normalizedPrefix));
     if (!await prefixDir.exists()) {
@@ -341,13 +375,17 @@ class LoginService {
       copiedAny = copiedAny || copied;
     }
 
-    for (final asset in <String>['assets/database/ventas.db', 'assets/database/rollo.db']) {
+    for (final asset in <String>[
+      'assets/database/ventas.db',
+      'assets/database/rollo.db'
+    ]) {
       final destination = p.join(databasesPath, p.basename(asset));
       await _copyAssetIfNeeded(asset, destination);
     }
 
     if (!copiedAny) {
-      developer.log('No se encontró base local para $prefijo', name: 'LoginService');
+      developer.log('No se encontró base local para $prefijo',
+          name: 'LoginService');
       throw Failure('Modo offline no disponible');
     }
   }
@@ -363,14 +401,19 @@ class LoginService {
     }
   }
 
-  Future<void> _persistCredentials({required String rut, required String prefix, required String passwordHash}) async {
+  Future<void> _persistCredentials(
+      {required String rut,
+      required String prefix,
+      required String passwordHash}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = _cacheKeyFor(rut);
       await prefs.setStringList(key, <String>[prefix, passwordHash]);
-      developer.log('Credenciales guardadas localmente para $rut', name: 'LoginService');
+      developer.log('Credenciales guardadas localmente para $rut',
+          name: 'LoginService');
     } catch (error, stackTrace) {
-      developer.log('Error guardando credenciales', name: 'LoginService', error: error, stackTrace: stackTrace);
+      developer.log('Error guardando credenciales',
+          name: 'LoginService', error: error, stackTrace: stackTrace);
     }
   }
 
@@ -382,9 +425,11 @@ class LoginService {
       if (cachedValues == null || cachedValues.length != 2) {
         return null;
       }
-      return _CachedCredentials(prefix: cachedValues.first, passwordHash: cachedValues.last);
+      return _CachedCredentials(
+          prefix: cachedValues.first, passwordHash: cachedValues.last);
     } catch (error, stackTrace) {
-      developer.log('Error obteniendo credenciales cacheadas', name: 'LoginService', error: error, stackTrace: stackTrace);
+      developer.log('Error obteniendo credenciales cacheadas',
+          name: 'LoginService', error: error, stackTrace: stackTrace);
       return null;
     }
   }
@@ -410,11 +455,13 @@ class LoginService {
   Future<String> _prepareLoginDatabase() async {
     final databasesPath = await getDatabasesPath();
     final destination = p.join(databasesPath, 'login.db');
-    await _copyAssetIfNeeded('assets/database/login.db', destination, required: true);
+    await _copyAssetIfNeeded('assets/database/login.db', destination,
+        required: true);
     return destination;
   }
 
-  Future<void> _updateLocalLoginDatabase(String rut, String prefijo, String password) async {
+  Future<void> _updateLocalLoginDatabase(
+      String rut, String prefijo, String password) async {
     final loginDbPath = await _prepareLoginDatabase();
     final db = await openDatabase(loginDbPath);
     try {
@@ -431,13 +478,15 @@ class LoginService {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     } catch (error, stackTrace) {
-      developer.log('Error actualizando base de login local', name: 'LoginService', error: error, stackTrace: stackTrace);
+      developer.log('Error actualizando base de login local',
+          name: 'LoginService', error: error, stackTrace: stackTrace);
     } finally {
       await db.close();
     }
   }
 
-  Future<bool> _copyAssetIfNeeded(String assetPath, String destinationPath, {bool required = false}) async {
+  Future<bool> _copyAssetIfNeeded(String assetPath, String destinationPath,
+      {bool required = false}) async {
     final file = File(destinationPath);
     if (await file.exists()) {
       return true;
@@ -447,17 +496,22 @@ class LoginService {
       final byteData = await rootBundle.load(assetPath);
       await file.parent.create(recursive: true);
       final buffer = byteData.buffer;
-      await file.writeAsBytes(buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes), flush: true);
-      developer.log('Base copiada desde asset $assetPath a $destinationPath', name: 'LoginService');
+      await file.writeAsBytes(
+          buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes),
+          flush: true);
+      developer.log('Base copiada desde asset $assetPath a $destinationPath',
+          name: 'LoginService');
       return true;
     } on FlutterError catch (error, stackTrace) {
-      developer.log('Asset no encontrado $assetPath', name: 'LoginService', error: error, stackTrace: stackTrace);
+      developer.log('Asset no encontrado $assetPath',
+          name: 'LoginService', error: error, stackTrace: stackTrace);
       if (required) {
         throw Failure('Modo offline no disponible', cause: error);
       }
       return false;
     } catch (error, stackTrace) {
-      developer.log('Error copiando asset $assetPath', name: 'LoginService', error: error, stackTrace: stackTrace);
+      developer.log('Error copiando asset $assetPath',
+          name: 'LoginService', error: error, stackTrace: stackTrace);
       if (required) {
         throw Failure('Error preparando base de datos local', cause: error);
       }

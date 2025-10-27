@@ -42,21 +42,28 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         if (next.user != null) {
           Future<void>.microtask(() => _handleSuccessfulLogin(next));
         } else if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
-          Future<void>.microtask(() => _mostrarAlertaErrorLogin(next.errorMessage!));
+          Future<void>.microtask(
+              () => _mostrarAlertaErrorLogin(next.errorMessage!));
         }
       }
 
-      if (!_suppressDownloadAlerts && previous?.isDownloading == true && next.isDownloading == false) {
+      if (!_suppressDownloadAlerts &&
+          previous?.isDownloading == true &&
+          next.isDownloading == false) {
         if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
-          Future<void>.microtask(() => _mostrarAlertaErrorEnvio(next.errorMessage!));
+          Future<void>.microtask(
+              () => _mostrarAlertaErrorEnvio(next.errorMessage!));
         } else if (next.infoMessage != null && next.infoMessage!.isNotEmpty) {
           Future<void>.microtask(() => _mostrarAlertaOk(next.infoMessage!));
         }
       }
 
-      if (!_suppressSyncAlerts && previous?.isSyncing == true && next.isSyncing == false) {
+      if (!_suppressSyncAlerts &&
+          previous?.isSyncing == true &&
+          next.isSyncing == false) {
         if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
-          Future<void>.microtask(() => _mostrarAlertaErrorEnvio(next.errorMessage!));
+          Future<void>.microtask(
+              () => _mostrarAlertaErrorEnvio(next.errorMessage!));
         } else if (next.infoMessage != null && next.infoMessage!.isNotEmpty) {
           Future<void>.microtask(() => _mostrarAlertaOk(next.infoMessage!));
         }
@@ -73,12 +80,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           final isWide = constraints.maxWidth >= 700;
           return Center(
             child: SingleChildScrollView(
-              padding: context.horizontalPadding(isWide ? 0.18 : 0.08).copyWith(top: 48, bottom: 48),
+              padding: context
+                  .horizontalPadding(isWide ? 0.18 : 0.08)
+                  .copyWith(top: 48, bottom: 48),
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: isWide ? 520 : 420),
                 child: Card(
                   elevation: 2,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24)),
                   child: Padding(
                     padding: const EdgeInsets.all(32),
                     child: Column(
@@ -88,15 +98,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         Center(
                           child: Column(
                             children: [
-                              Image.asset('assets/img/logo-p.png', height: isWide ? 120 : 96),
+                              Image.asset('assets/img/logo-p.png',
+                                  height: isWide ? 120 : 96),
                               const SizedBox(height: 16),
-                              Text('Bienvenido', style: theme.textTheme.headlineSmall),
+                              Text('Bienvenido',
+                                  style: theme.textTheme.headlineSmall),
                             ],
                           ),
                         ),
                         const SizedBox(height: 24),
-                        if (isBusy)
-                          const LinearProgressIndicator(minHeight: 3),
+                        if (isBusy) const LinearProgressIndicator(minHeight: 3),
                         if (isBusy) const SizedBox(height: 16),
                         if (state.isOffline)
                           Padding(
@@ -142,8 +153,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   if (value == null || value.isEmpty) {
                                     return 'La contraseña es obligatoria';
                                   }
-                                  if (value.length < 6) {
-                                    return 'Debe contener al menos 6 caracteres';
+                                  if (value.length < 3) {
+                                    return 'Debe contener al menos 3 caracteres';
                                   }
                                   return null;
                                 },
@@ -151,7 +162,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               const SizedBox(height: 12),
                               CheckboxListTile(
                                 value: _rememberMe,
-                                onChanged: (value) => setState(() => _rememberMe = value ?? false),
+                                onChanged: (value) => setState(
+                                    () => _rememberMe = value ?? false),
                                 contentPadding: EdgeInsets.zero,
                                 title: const Text('Recordarme'),
                               ),
@@ -160,30 +172,37 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 value: _downloadAfterLogin,
                                 onChanged: state.isLoggingIn
                                     ? null
-                                    : (value) => setState(() => _downloadAfterLogin = value ?? false),
+                                    : (value) => setState(() =>
+                                        _downloadAfterLogin = value ?? false),
                                 contentPadding: EdgeInsets.zero,
                                 title: const Text('Descargar Data'),
-                                subtitle: const Text('Obtiene la información actualizada antes de ingresar.'),
+                                subtitle: const Text(
+                                    'Obtiene la información actualizada antes de ingresar.'),
                               ),
                               CheckboxListTile(
                                 value: _syncAfterLogin,
                                 onChanged: state.isLoggingIn
                                     ? null
-                                    : (value) => setState(() => _syncAfterLogin = value ?? false),
+                                    : (value) => setState(
+                                        () => _syncAfterLogin = value ?? false),
                                 contentPadding: EdgeInsets.zero,
                                 title: const Text('Sincronizar Data'),
-                                subtitle: const Text('Envía las ventas pendientes al iniciar sesión.'),
+                                subtitle: const Text(
+                                    'Envía las ventas pendientes al iniciar sesión.'),
                               ),
                               const SizedBox(height: 24),
                               SizedBox(
                                 width: double.infinity,
                                 child: FilledButton(
-                                  onPressed: state.isLoggingIn ? null : _onLoginPressed,
+                                  onPressed: state.isLoggingIn
+                                      ? null
+                                      : _onLoginPressed,
                                   child: state.isLoggingIn
                                       ? const SizedBox(
                                           width: 24,
                                           height: 24,
-                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
                                         )
                                       : const Text('Iniciar sesión'),
                                 ),
@@ -220,11 +239,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     _postLoginFlowRunning = true;
     final rut = RutUtils.toDatabaseFormat(_rutController.text);
     final controller = ref.read(loginControllerProvider.notifier);
-    final loginMessage = state.infoMessage != null && state.infoMessage!.isNotEmpty
-        ? state.infoMessage!
-        : state.isOffline
-            ? 'Sesión iniciada en modo offline'
-            : 'Sesión iniciada correctamente';
+    final loginMessage =
+        state.infoMessage != null && state.infoMessage!.isNotEmpty
+            ? state.infoMessage!
+            : state.isOffline
+                ? 'Sesión iniciada en modo offline'
+                : 'Sesión iniciada correctamente';
 
     var hasErrors = false;
 
@@ -234,7 +254,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         try {
           final success = await controller.downloadData(rut);
           final latestState = ref.read(loginControllerProvider);
-          if (!success && latestState.errorMessage != null && latestState.errorMessage!.isNotEmpty) {
+          if (!success &&
+              latestState.errorMessage != null &&
+              latestState.errorMessage!.isNotEmpty) {
             hasErrors = true;
             await _mostrarAlertaErrorEnvio(latestState.errorMessage!);
           }
@@ -248,7 +270,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         try {
           final success = await controller.synchronizeSales(rut);
           final latestState = ref.read(loginControllerProvider);
-          if (!success && latestState.errorMessage != null && latestState.errorMessage!.isNotEmpty) {
+          if (!success &&
+              latestState.errorMessage != null &&
+              latestState.errorMessage!.isNotEmpty) {
             hasErrors = true;
             await _mostrarAlertaErrorEnvio(latestState.errorMessage!);
           }
@@ -264,7 +288,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (!hasErrors && _downloadAfterLogin) {
         final latestState = ref.read(loginControllerProvider);
         final infoMessage = latestState.infoMessage;
-        if (infoMessage != null && infoMessage.isNotEmpty && infoMessage != loginMessage) {
+        if (infoMessage != null &&
+            infoMessage.isNotEmpty &&
+            infoMessage != loginMessage) {
           await _mostrarAlertaOk(infoMessage);
         }
       }

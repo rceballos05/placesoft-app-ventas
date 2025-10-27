@@ -31,8 +31,9 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   static const int _pageSize = 10;
-  static const CurrencyFormatterSettings _clpSettings = CurrencyFormatterSettings(
-    symbol: r'\$',
+  static const CurrencyFormatterSettings _clpSettings =
+      CurrencyFormatterSettings(
+    symbol: r'$',
     symbolSide: SymbolSide.left,
     thousandSeparator: '.',
     decimalSeparator: ',',
@@ -54,7 +55,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    BuscarProducto.configure(searcher: _searchProducts, currencySettings: _clpSettings);
+    BuscarProducto.configure(
+        searcher: _searchProducts, currencySettings: _clpSettings);
     _scrollController.addListener(_onScroll);
     _loadMoreProducts(initial: true, resetCache: true);
   }
@@ -80,7 +82,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     }
   }
 
-  Future<void> _loadMoreProducts({bool initial = false, bool resetCache = false}) async {
+  Future<void> _loadMoreProducts(
+      {bool initial = false, bool resetCache = false}) async {
     if (_isLoadingMore || (!_hasMore && !initial)) {
       return;
     }
@@ -106,7 +109,8 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     try {
       await _ensureMaeArticulosCache();
-      final nuevos = await obtenerProductosOffline(limit: _pageSize, offset: _offset);
+      final nuevos =
+          await obtenerProductosOffline(limit: _pageSize, offset: _offset);
       if (!mounted) {
         return;
       }
@@ -150,10 +154,12 @@ class _HomePageState extends ConsumerState<HomePage> {
       await database.close();
     }
 
-    BuscarProducto.configure(searcher: _searchProducts, currencySettings: _clpSettings);
+    BuscarProducto.configure(
+        searcher: _searchProducts, currencySettings: _clpSettings);
   }
 
-  Future<List<Producto>> obtenerProductosOffline({int limit = _pageSize, int offset = 0}) async {
+  Future<List<Producto>> obtenerProductosOffline(
+      {int limit = _pageSize, int offset = 0}) async {
     await _ensureMaeArticulosCache();
     final items = _maeArticulosCache.skip(offset).take(limit).toList();
     return _mapMaeArticulos(items);
@@ -166,11 +172,14 @@ class _HomePageState extends ConsumerState<HomePage> {
       return _mapMaeArticulos(_maeArticulosCache.take(_pageSize).toList());
     }
 
-    final matches = _maeArticulosCache.where((item) {
-      final description = item.descripcion?.toLowerCase() ?? '';
-      final code = item.codigobarra?.toLowerCase() ?? '';
-      return description.contains(normalized) || code.contains(normalized);
-    }).take(30).toList();
+    final matches = _maeArticulosCache
+        .where((item) {
+          final description = item.descripcion?.toLowerCase() ?? '';
+          final code = item.codigobarra?.toLowerCase() ?? '';
+          return description.contains(normalized) || code.contains(normalized);
+        })
+        .take(30)
+        .toList();
 
     return _mapMaeArticulos(matches);
   }
@@ -192,7 +201,8 @@ class _HomePageState extends ConsumerState<HomePage> {
         if (code == null || code.isEmpty) {
           continue;
         }
-        final MaePrecios precioData = await DBPrecios.get(code, database: database);
+        final MaePrecios precioData =
+            await DBPrecios.get(code, database: database);
         productos.add(
           Producto(
             codigobarra: code,
@@ -283,7 +293,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     const navHeight = 60.0;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0E0E11) : const Color(0xFFF1F4FB),
+      backgroundColor:
+          isDark ? const Color(0xFF0E0E11) : const Color(0xFFF1F4FB),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -295,7 +306,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             if (_isInitialLoading) {
               content = const Center(child: CircularProgressIndicator());
             } else if (_errorMessage != null) {
-              content = _ErrorView(onRetry: _retryLoad, message: _errorMessage!);
+              content =
+                  _ErrorView(onRetry: _retryLoad, message: _errorMessage!);
             } else if (_productos.isEmpty) {
               content = const _EmptyCatalogView();
             } else {
@@ -341,7 +353,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                         'Catálogo',
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
-                          color: isDark ? Colors.white : theme.colorScheme.onBackground,
+                          color: isDark
+                              ? Colors.white
+                              : theme.colorScheme.onBackground,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -365,8 +379,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                                 hintText: 'Buscar productos…',
                                 prefixIcon: const Icon(Icons.search),
                                 filled: true,
-                                fillColor:
-                                    isDark ? const Color(0xFF1A1B22) : Colors.white,
+                                fillColor: isDark
+                                    ? const Color(0xFF1A1B22)
+                                    : Colors.white,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide.none,
@@ -392,7 +407,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                             label: const Text('Buscar'),
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size(110, 48),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -452,94 +468,98 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final priceText = CurrencyFormatter.format(producto.precio, currencySettings);
+    final priceText =
+        CurrencyFormatter.format(producto.precio, currencySettings);
 
     return Card(
       color: isDark ? const Color(0xFF1A1B22) : Colors.white,
-      elevation: 3,
+      elevation: 5,
+      shadowColor: Colors.black26,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: onAddToCart,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    'https://picsum.photos/seed/${producto.codigobarra}/400/400',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Image.asset(
-                      'assets/img/producto.png',
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 40,
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: Text(
-                    producto.descripcion,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 🔹 Imagen un poco más chica
+            Expanded(
+              flex: 5, // antes era 6
+              child: Stack(
                 children: [
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        priceText,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? Colors.deepPurpleAccent.shade100
-                              : theme.colorScheme.primary,
-                        ),
+                  ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
+                    child: Image.network(
+                      'https://picsum.photos/seed/${producto.codigobarra}/400/400',
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        'assets/img/producto.png',
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: onAddToCart,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.deepPurpleAccent.withOpacity(0.12)
-                            : theme.colorScheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        LineAwesomeIcons.shopping_cart_plus,
-                        size: 20,
-                        color: isDark
-                            ? Colors.deepPurpleAccent.shade100
-                            : theme.colorScheme.primary,
+                  // 🔹 Botón del carrito más grande
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Material(
+                      color: isDark
+                          ? Colors.deepPurpleAccent.shade100.withOpacity(0.9)
+                          : theme.colorScheme.primary.withOpacity(0.9),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: onAddToCart,
+                        child: const Padding(
+                          padding: EdgeInsets.all(10), // antes 8
+                          child: Icon(
+                            LineAwesomeIcons.shopping_cart,
+                            size: 22, // antes 20
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+
+            // 🔹 Contenido más compacto
+            Expanded(
+              flex: 4,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      producto.descripcion,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13, // más pequeño
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      priceText,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15, // ajustado
+                        color: isDark
+                            ? Colors.deepPurpleAccent.shade100
+                            : theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -565,7 +585,8 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Error al cargar productos',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
@@ -599,11 +620,13 @@ class _EmptyCatalogView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.inventory_2_outlined, size: 56, color: theme.colorScheme.primary),
+            Icon(Icons.inventory_2_outlined,
+                size: 56, color: theme.colorScheme.primary),
             const SizedBox(height: 12),
             Text(
               'No hay productos disponibles',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
