@@ -228,13 +228,17 @@ class _DetalleState extends ConsumerState<Detalle> {
           TextSelection.collapsed(offset: _discountController.text.length);
       return;
     }
-    final capped = parsed.clamp(0, _maxDiscount);
+    final maxAllowedDiscount = min(_maxDiscount, 100);
+    final capped = parsed.clamp(0, maxAllowedDiscount);
     if (capped != parsed) {
       _discountController.text = capped.toStringAsFixed(0);
       _discountController.selection =
           TextSelection.collapsed(offset: _discountController.text.length);
+      final maxLabel = maxAllowedDiscount == _maxDiscount
+          ? _maxDiscount.toStringAsFixed(0)
+          : '100';
       _showError(
-          'El descuento no puede superar el ${_maxDiscount.toStringAsFixed(0)}%.');
+          'El descuento debe estar entre 0% y $maxLabel%.');
     }
     _discountPercent = capped.toDouble();
     _recalculateTotals();
@@ -572,6 +576,14 @@ class _ProductDetailView extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
+          const SizedBox(height: 8),
+          Text(
+            'Código: ${producto.codigobarra}',
+            style: textTheme.bodyMedium?.copyWith(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -588,19 +600,23 @@ class _ProductDetailView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+          // --- Inicio bloque Descuento ---
+          if (canApplyDiscount)
+            _DiscountSection(
+              controller: discountController,
+              onChanged: onDiscountChanged,
+              currencySettings: currencySettings,
+              unitPrice: producto.precio,
+              discountPercent: discountPercent,
+            ),
+          if (canApplyDiscount) const SizedBox(height: 24),
+          // --- Fin bloque Descuento ---
           _QuantitySelector(
             controller: quantityController,
             onIncrease: onIncreaseQuantity,
             onDecrease: onDecreaseQuantity,
             onChanged: onQuantityChanged,
           ),
-          if (canApplyDiscount) ...[
-            const SizedBox(height: 20),
-            _DiscountField(
-              controller: discountController,
-              onChanged: onDiscountChanged,
-            ),
-          ],
           const SizedBox(height: 20),
           _NotesField(controller: notesController),
           const SizedBox(height: 24),
@@ -865,35 +881,53 @@ class _RoundButton extends StatelessWidget {
   }
 }
 
-class _DiscountField extends StatelessWidget {
-  const _DiscountField({required this.controller, required this.onChanged});
+class _DiscountSection extends StatelessWidget {
+  const _DiscountSection({
+    required this.controller,
+    required this.onChanged,
+    required this.currencySettings,
+    required this.unitPrice,
+    required this.discountPercent,
+  });
 
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
+  final CurrencyFormatterSettings currencySettings;
+  final int unitPrice;
+  final double discountPercent;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final originalPriceText =
+        CurrencyFormatter.format(unitPrice, currencySettings);
+    final discountedValue =
+        max(0, (unitPrice * (1 - discountPercent / 100)).round());
+    final discountedPriceText =
+        CurrencyFormatter.format(discountedValue, currencySettings);
+    final isDiscountApplied = discountPercent > 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Descuento autorizado',
-          style: theme.textTheme.titleMedium?.copyWith(
+          'Descuento',
+          style: textTheme.titleMedium?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         TextField(
           controller: controller,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-            LengthLimitingTextInputFormatter(3),
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+            LengthLimitingTextInputFormatter(5),
           ],
           onChanged: onChanged,
-          style: theme.textTheme.titleMedium?.copyWith(
+          style: textTheme.titleMedium?.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
@@ -902,13 +936,47 @@ class _DiscountField extends StatelessWidget {
             fillColor: Colors.white.withOpacity(0.16),
             suffixText: '%',
             suffixStyle:
-                theme.textTheme.titleMedium?.copyWith(color: Colors.white70),
+                textTheme.titleMedium?.copyWith(color: Colors.white70),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: BorderSide.none,
             ),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.18),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Precio original: $originalPriceText',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                isDiscountApplied
+                    ? 'Precio con descuento: $discountedPriceText'
+                    : 'Precio con descuento: $originalPriceText',
+                style: textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
         ),
       ],
