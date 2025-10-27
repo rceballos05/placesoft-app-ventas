@@ -52,7 +52,7 @@ class ProductListPage extends StatelessWidget {
   String _formatPrice(double value) {
     return CurrencyFormatter.format(
       value,
-      currencyFormatterSettings: _currencySettings,
+      _currencySettings,
     );
   }
 
@@ -84,7 +84,8 @@ class ProductListPage extends StatelessWidget {
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                 child: Row(
                   children: [
                     Expanded(
@@ -93,7 +94,10 @@ class ProductListPage extends StatelessWidget {
                         children: [
                           Text(
                             product.name,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                           ),

@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-
 import 'package:aplicacion_ventas/application/providers/cart_provider.dart';
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
 import 'package:aplicacion_ventas/db/db_precios.dart';
@@ -37,7 +36,7 @@ class Detalle extends ConsumerStatefulWidget {
 
 class _DetalleState extends ConsumerState<Detalle> {
   static const _currencySettings = CurrencyFormatterSettings(
-    symbol: r'\$',
+    symbol: r'$',
     symbolSide: SymbolSide.left,
     thousandSeparator: '.',
     decimalSeparator: ',',
@@ -719,7 +718,7 @@ class _BottomBar extends StatelessWidget {
                           const Text('🛒', style: TextStyle(fontSize: 20)),
                           const SizedBox(width: 8),
                           Text(
-                            'Añadir al carrito',
+                            'Añadir',
                             style: theme.textTheme.titleMedium?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w600,

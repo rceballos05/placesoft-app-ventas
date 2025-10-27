@@ -1,4 +1,5 @@
 import 'package:aplicacion_ventas/models/producto.dart';
+import 'package:aplicacion_ventas/presentation/pages/detalle.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:flutter/material.dart';
 
@@ -7,7 +8,8 @@ class BuscarProducto extends SearchDelegate<Producto?> {
   BuscarProducto();
 
   static Future<List<Producto>> Function(String query)? _searcher;
-  static CurrencyFormatterSettings _currencySettings = const CurrencyFormatterSettings(
+  static CurrencyFormatterSettings _currencySettings =
+      const CurrencyFormatterSettings(
     symbol: r'\$',
     symbolSide: SymbolSide.left,
     thousandSeparator: '.',
@@ -94,7 +96,8 @@ class BuscarProducto extends SearchDelegate<Producto?> {
           separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (context, index) {
             final producto = results[index];
-            final price = CurrencyFormatter.format(producto.precio, _currencySettings);
+            final price =
+                CurrencyFormatter.format(producto.precio, _currencySettings);
             return ListTile(
               title: Text(
                 producto.descripcion,
@@ -102,7 +105,18 @@ class BuscarProducto extends SearchDelegate<Producto?> {
                 overflow: TextOverflow.ellipsis,
               ),
               subtitle: Text(price),
-              onTap: () => close(context, producto),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Detalle(
+                      codigo: producto.codigobarra, // ← aquí le pasas el código
+                      busquedaInicial: producto.descripcion, // opcional
+                      fromBusqueda: true, // o true según el caso
+                    ),
+                  ),
+                );
+              },
             );
           },
         );

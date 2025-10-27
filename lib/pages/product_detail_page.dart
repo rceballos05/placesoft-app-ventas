@@ -19,10 +19,7 @@ class ProductDetailPage extends StatelessWidget {
   );
 
   String _formatPrice(double value) {
-    return CurrencyFormatter.format(
-      value,
-      currencyFormatterSettings: _currencySettings,
-    );
+    return CurrencyFormatter.format(value, _currencySettings);
   }
 
   @override
@@ -90,7 +87,8 @@ class ProductDetailPage extends StatelessWidget {
               ),
               elevation: 1,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

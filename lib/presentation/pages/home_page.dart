@@ -9,6 +9,7 @@ import 'package:aplicacion_ventas/db/precios.dart';
 import 'package:aplicacion_ventas/domain/entities/product.dart';
 import 'package:aplicacion_ventas/models/producto.dart';
 import 'package:aplicacion_ventas/presentation/pages/cart_page.dart';
+import 'package:aplicacion_ventas/presentation/pages/detalle.dart';
 import 'package:aplicacion_ventas/presentation/pages/perfil.dart';
 import 'package:aplicacion_ventas/presentation/widgets/busqueda_producto.dart';
 import 'package:currency_formatter/currency_formatter.dart';
@@ -477,6 +478,18 @@ class _ProductCard extends StatelessWidget {
       shadowColor: Colors.black26,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => Detalle(
+                codigo: producto.codigobarra, // ← aquí le pasas el código
+                busquedaInicial: producto.descripcion, // opcional
+                fromBusqueda: false, // o true según el caso
+              ),
+            ),
+          );
+        },
         borderRadius: BorderRadius.circular(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
