@@ -409,6 +409,17 @@ class _DetalleState extends ConsumerState<Detalle> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<LoginState>(loginControllerProvider, (previous, next) {
+      if (!mounted) {
+        return;
+      }
+      if (next.user == null) {
+        developer.log('Estado de login sin usuario al actualizar descuentos',
+            name: 'Detalle');
+      }
+      _updateDiscountLimits();
+    });
+
     return Scaffold(
       extendBody: true,
       body: Container(
