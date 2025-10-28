@@ -51,6 +51,7 @@ class _DetalleState extends ConsumerState<Detalle> {
   final TextEditingController _notesController = TextEditingController();
 
   late Future<_ProductDetail> _detailFuture;
+  late final ProviderSubscription<LoginState> _loginSubscription;
 
   Producto? _producto;
   String? _imageUrl;
@@ -68,7 +69,8 @@ class _DetalleState extends ConsumerState<Detalle> {
   void initState() {
     super.initState();
     _detailFuture = _loadDetail();
-    ref.listen<LoginState>(loginControllerProvider, (previous, next) {
+    _loginSubscription = ref.listenManual<LoginState>(
+        loginControllerProvider, (previous, next) {
       if (!mounted) {
         return;
       }
@@ -82,6 +84,7 @@ class _DetalleState extends ConsumerState<Detalle> {
 
   @override
   void dispose() {
+    _loginSubscription.close();
     _quantityController.dispose();
     _discountController.dispose();
     _notesController.dispose();
