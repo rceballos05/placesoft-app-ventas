@@ -2,6 +2,8 @@ import 'dart:developer' as developer;
 
 import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
+import 'package:aplicacion_ventas/core/theme/app_theme.dart';
+import 'package:aplicacion_ventas/core/theme/theme_model.dart';
 import 'package:aplicacion_ventas/domain/entities/user.dart';
 import 'package:aplicacion_ventas/presentation/pages/agregar_cliente_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/agregar_destino_page.dart';
@@ -52,6 +54,7 @@ class _PerfilState extends ConsumerState<Perfil>
 
   @override
   Widget build(BuildContext context) {
+    final themeModel = ThemeModel.maybeOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final loginState = ref.watch(loginControllerProvider);
     final currentUser = loginState.user;
@@ -70,7 +73,11 @@ class _PerfilState extends ConsumerState<Perfil>
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  _buildHeader(context),
+                  _buildHeader(
+                    context,
+                    isDark: isDark,
+                    themeModel: themeModel,
+                  ),
                   const SizedBox(height: 24),
                   _buildUserCard(isDark: isDark, user: currentUser),
                   const SizedBox(height: 24),
@@ -79,7 +86,7 @@ class _PerfilState extends ConsumerState<Perfil>
                   const Divider(),
                   const SizedBox(height: 6),
                   Text(
-                    'v1.0.3 — ${currentUser!.prefijo.toUpperCase()}',
+                    'v1.0.3 — ${(currentUser?.prefijo ?? '—').toUpperCase()}',
                     style: TextStyle(
                       color: isDark ? Colors.white54 : Colors.black45,
                       fontSize: 12,
@@ -94,26 +101,75 @@ class _PerfilState extends ConsumerState<Perfil>
     );
   }
 
-  Widget _buildHeader(BuildContext context) => Row(
-        children: [
-          IconButton(
-            icon: const Icon(LineAwesomeIcons.arrow_left),
-            onPressed: () {
-              if (clienteVenta == null) {
-                showSearch(context: context, delegate: BuscarCliente());
-              } else {
-                Navigator.pop(context);
-              }
-            },
+  Widget _buildHeader(
+    BuildContext context, {
+    required bool isDark,
+    ThemeModel? themeModel,
+  }) {
+    final titleColor = isDark ? Colors.white : Colors.black87;
+
+    return Row(
+      children: [
+        IconButton(
+          icon: Icon(
+            LineAwesomeIcons.arrow_left,
+            color: titleColor,
           ),
-          const Spacer(),
-          const Text(
+          onPressed: () {
+            if (clienteVenta == null) {
+              showSearch(context: context, delegate: BuscarCliente());
+            } else {
+              Navigator.pop(context);
+            }
+          },
+        ),
+        Expanded(
+          child: Text(
             'Perfil de Usuario',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: titleColor,
+            ),
           ),
-          const Spacer(flex: 2),
-        ],
-      );
+        ),
+        const SizedBox(width: 8),
+        ThemeSwitcher(
+          builder: (context) {
+            final isCurrentlyDark = Theme.of(context).brightness == Brightness.dark;
+            final iconColor = isCurrentlyDark ? Colors.amberAccent : Colors.indigo;
+
+            return IconButton(
+              tooltip: isCurrentlyDark
+                  ? 'Cambiar a modo claro'
+                  : 'Cambiar a modo oscuro',
+              onPressed: () {
+                final switcher = ThemeSwitcher.of(context);
+                final theme =
+                    isCurrentlyDark ? AppTheme.lightTheme : AppTheme.darkTheme;
+                switcher.changeTheme(theme: theme);
+                themeModel?.themeMode =
+                    isCurrentlyDark ? ThemeMode.light : ThemeMode.dark;
+              },
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: ScaleTransition(scale: animation, child: child),
+                ),
+                child: Icon(
+                  isCurrentlyDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+                  key: ValueKey<bool>(isCurrentlyDark),
+                  color: iconColor,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
 
   Widget _buildUserCard({required bool isDark, required User? user}) {
     final isLoggedIn = user != null;
