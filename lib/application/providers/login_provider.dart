@@ -122,6 +122,13 @@ class LoginController extends StateNotifier<LoginState> {
     return wasSuccessful;
   }
 
+  Future<void> logout({bool clearPersistedCredentials = false}) async {
+    await _loginService.logout(
+      clearPersistedCredentials: clearPersistedCredentials,
+    );
+    state = const LoginState();
+  }
+
   Future<bool> downloadData(String rut) async {
     final normalizedRut = RutUtils.toDatabaseFormat(rut);
     state = state.copyWith(isDownloading: true, resetMessages: true);

@@ -474,6 +474,37 @@ class LoginService {
     }
   }
 
+  /// Clears any in-memory cached login information.
+  Future<void> logout({bool clearPersistedCredentials = false}) async {
+    developer.log('Cerrando sesión y limpiando caches', name: 'LoginService');
+    _lastLoginResult = null;
+    _lastFailure = null;
+    _onlineUserCache = null;
+    _offlineUserCache = null;
+    caja = '';
+    descuento = 0;
+    nombreUsuario = '';
+
+    if (!clearPersistedCredentials) {
+      return;
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachePrefix = _cacheKeyFor('');
+      final keysToRemove =
+          prefs.getKeys().where((key) => key.startsWith(cachePrefix)).toList();
+      for (final key in keysToRemove) {
+        await prefs.remove(key);
+      }
+      developer.log('Credenciales persistidas eliminadas (${keysToRemove.length})',
+          name: 'LoginService');
+    } catch (error, stackTrace) {
+      developer.log('Error limpiando credenciales persistidas',
+          name: 'LoginService', error: error, stackTrace: stackTrace);
+    }
+  }
+
   Future<void> _persistCredentials(
       {required String rut,
       required String prefix,

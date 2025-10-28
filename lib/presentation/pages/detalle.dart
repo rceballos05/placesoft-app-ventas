@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math';
 import 'package:aplicacion_ventas/application/providers/cart_provider.dart';
@@ -55,6 +56,7 @@ class _DetalleState extends ConsumerState<Detalle> {
   String? _imageUrl;
   int _quantity = 1;
   int _unitPrice = 0;
+  double _productMaxDiscount = 0;
   double _maxDiscount = 0;
   double _discountPercent = 0;
   int _subtotal = 0;
@@ -66,6 +68,16 @@ class _DetalleState extends ConsumerState<Detalle> {
   void initState() {
     super.initState();
     _detailFuture = _loadDetail();
+    ref.listen<LoginState>(loginControllerProvider, (previous, next) {
+      if (!mounted) {
+        return;
+      }
+      if (next.user == null) {
+        developer.log('Estado de login sin usuario al actualizar descuentos',
+            name: 'Detalle');
+      }
+      _updateDiscountLimits();
+    });
   }
 
   @override
@@ -83,6 +95,10 @@ class _DetalleState extends ConsumerState<Detalle> {
     }
 
     final loginState = ref.read(loginControllerProvider);
+    if (loginState.user == null) {
+      developer.log('Cargando detalle de producto sin usuario autenticado',
+          name: 'Detalle');
+    }
     final databasePath = await _resolveProductsDatabasePath(loginState);
     final database = await openDatabase(databasePath, readOnly: true);
     try {
@@ -120,11 +136,21 @@ class _DetalleState extends ConsumerState<Detalle> {
       );
 
       if (mounted) {
+        final user = loginState.user;
+        final effectiveMaxDiscount = user != null
+            ? min(detalle.maxDiscount, user.maxDcto)
+            : detalle.maxDiscount;
+        if (user == null) {
+          developer.log('No hay usuario para limitar descuento; se usará el '
+              'valor del producto (${detalle.maxDiscount})',
+              name: 'Detalle');
+        }
         setState(() {
           _producto = detalle.producto;
           _imageUrl = detalle.imageUrl;
           _unitPrice = max(0, detalle.producto.precio);
-          _maxDiscount = max(0, detalle.maxDiscount);
+          _productMaxDiscount = max(0, detalle.maxDiscount);
+          _maxDiscount = max(0, effectiveMaxDiscount);
           _quantity = 1;
           _discountPercent = 0;
           _quantityController.text = '1';
@@ -147,6 +173,10 @@ class _DetalleState extends ConsumerState<Detalle> {
     }
 
     final userPrefix = state.user?.prefijo;
+    if (userPrefix == null || userPrefix.isEmpty) {
+      developer.log('Resolviendo base de productos sin prefijo de usuario',
+          name: 'Detalle');
+    }
     final prefix = userPrefix?.trim().toLowerCase();
     if (prefix != null && prefix.isNotEmpty) {
       final databasesPath = await getDatabasesPath();
@@ -263,6 +293,15 @@ class _DetalleState extends ConsumerState<Detalle> {
       return;
     }
 
+    final loginState = ref.read(loginControllerProvider);
+    final user = loginState.user;
+    if (user == null) {
+      developer.log('Intento de agregar producto sin sesión activa',
+          name: 'Detalle');
+      _showError('La sesión ha expirado. Inicia sesión nuevamente.');
+      return;
+    }
+
     final cart = ref.read(cartControllerProvider);
     if (cart.items.any((item) => item.product.code == detail.codigobarra)) {
       _showError('El producto ya fue agregado al carrito.');
@@ -284,8 +323,7 @@ class _DetalleState extends ConsumerState<Detalle> {
           : _total.toDouble();
       final transactionDate = now.toIso8601String();
       final time = _formatTime(now);
-      final loginState = ref.read(loginControllerProvider);
-      final rut = loginState.user?.rut ?? '';
+      final rut = user.rut;
 
       final rollo = LocalRollo(
         local: '00',
@@ -449,6 +487,51 @@ class _DetalleState extends ConsumerState<Detalle> {
         ),
       ),
     );
+  }
+
+  void _updateDiscountLimits({double? productLimit}) {
+    if (!mounted) {
+      return;
+    }
+    final loginState = ref.read(loginControllerProvider);
+    final baseProductLimit =
+        productLimit ?? (_productMaxDiscount > 0 ? _productMaxDiscount : 0);
+    final sanitizedProductLimit =
+        baseProductLimit.isFinite ? max(0, baseProductLimit) : 0;
+    if (_producto == null && productLimit == null) {
+      developer.log('No hay producto cargado para actualizar descuentos',
+          name: 'Detalle');
+      return;
+    }
+
+    final user = loginState.user;
+    if (user == null) {
+      developer.log('No hay usuario activo al actualizar límites de descuento',
+          name: 'Detalle');
+    }
+    final rawEffectiveMax = user != null
+        ? min(sanitizedProductLimit, user.maxDcto)
+        : sanitizedProductLimit;
+    final effectiveMax = rawEffectiveMax.isFinite
+        ? max(0, rawEffectiveMax)
+        : 0.0;
+    final updatedDiscountPercent = min(_discountPercent, effectiveMax);
+
+    final shouldUpdateState =
+        _productMaxDiscount != sanitizedProductLimit ||
+        _maxDiscount != effectiveMax ||
+        _discountPercent != updatedDiscountPercent;
+    if (!shouldUpdateState) {
+      return;
+    }
+
+    setState(() {
+      _productMaxDiscount = sanitizedProductLimit;
+      _maxDiscount = effectiveMax;
+      _discountPercent = updatedDiscountPercent;
+      _discountController.text = _discountPercent.toStringAsFixed(0);
+    });
+    _recalculateTotals();
   }
 
   void _handleBack() {

@@ -1,4 +1,8 @@
+import 'dart:developer' as developer;
+
 import 'package:animated_theme_switcher/animated_theme_switcher.dart';
+import 'package:aplicacion_ventas/application/providers/login_provider.dart';
+import 'package:aplicacion_ventas/domain/entities/user.dart';
 import 'package:aplicacion_ventas/presentation/pages/agregar_cliente_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/agregar_destino_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/historial_page.dart';
@@ -9,19 +13,21 @@ import 'package:aplicacion_ventas/presentation/widgets/busqueda_cliente.dart';
 import 'package:aplicacion_ventas/presentation/widgets/profile_list_item.dart';
 import 'package:aplicacion_ventas/statics/globals.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 
 /// Pantalla de perfil del usuario con accesos directos a distintas gestiones.
-class Perfil extends StatefulWidget {
+class Perfil extends ConsumerStatefulWidget {
   const Perfil({super.key});
 
   static const routeName = '/perfil';
 
   @override
-  State<Perfil> createState() => _PerfilState();
+  ConsumerState<Perfil> createState() => _PerfilState();
 }
 
-class _PerfilState extends State<Perfil> with SingleTickerProviderStateMixin {
+class _PerfilState extends ConsumerState<Perfil>
+    with SingleTickerProviderStateMixin {
   final TextEditingController nuevoPass = TextEditingController();
   late final AnimationController _controller;
   late final Animation<double> _fade;
@@ -47,6 +53,12 @@ class _PerfilState extends State<Perfil> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final loginState = ref.watch(loginControllerProvider);
+    final currentUser = loginState.user;
+    if (currentUser == null) {
+      developer.log('Perfil renderizado sin usuario autenticado',
+          name: 'Perfil');
+    }
 
     return ThemeSwitchingArea(
       child: FadeTransition(
@@ -60,7 +72,7 @@ class _PerfilState extends State<Perfil> with SingleTickerProviderStateMixin {
                 children: [
                   _buildHeader(context),
                   const SizedBox(height: 24),
-                  _buildUserCard(isDark),
+                  _buildUserCard(isDark: isDark, user: currentUser),
                   const SizedBox(height: 24),
                   _buildOptions(context),
                   const SizedBox(height: 20),
@@ -103,7 +115,22 @@ class _PerfilState extends State<Perfil> with SingleTickerProviderStateMixin {
         ],
       );
 
-  Widget _buildUserCard(bool isDark) => Container(
+  Widget _buildUserCard({required bool isDark, required User? user}) {
+    final isLoggedIn = user != null;
+    final nombre = user?.nombre ?? 'Usuario';
+    final rut = user?.rut ?? 'Sin sesión activa';
+    final cajaAsignada = (user?.caja ?? '').isEmpty ? 'No asignada' : user!.caja;
+    final prefijo = user?.prefijo ?? '—';
+    final maxDctoLabel = user != null
+        ? '${user.maxDcto.toStringAsFixed(2)}%'
+        : 'Sin información disponible';
+
+    if (!isLoggedIn) {
+      developer.log('Mostrando tarjeta de perfil sin datos de usuario',
+          name: 'Perfil');
+    }
+
+    return Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: isDark
@@ -153,7 +180,7 @@ class _PerfilState extends State<Perfil> with SingleTickerProviderStateMixin {
             ),
             const SizedBox(height: 12),
             Text(
-              user?.nombre ?? 'Usuario',
+              nombre,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -161,15 +188,57 @@ class _PerfilState extends State<Perfil> with SingleTickerProviderStateMixin {
               ),
             ),
             Text(
-              user?.correo ?? 'correo@ejemplo.cl',
+              rut,
               style: TextStyle(
                 fontSize: 14,
                 color: isDark ? Colors.white70 : Colors.black54,
               ),
             ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _UserDataRow(
+                        label: 'Caja asignada',
+                        value: cajaAsignada,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 8),
+                      _UserDataRow(
+                        label: 'Prefijo',
+                        value: prefijo,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 8),
+                      _UserDataRow(
+                        label: 'Descuento máximo',
+                        value: maxDctoLabel,
+                        isDark: isDark,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (!isLoggedIn)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(
+                  'Inicia sesión nuevamente para ver los datos actualizados.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: isDark ? Colors.white70 : Colors.black54,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
           ],
         ),
       );
+  }
 
   Widget _buildOptions(BuildContext context) => Column(
         children: [
@@ -232,7 +301,8 @@ class _PerfilState extends State<Perfil> with SingleTickerProviderStateMixin {
       ),
     );
     if (salir == true) {
-      user = null;
+      developer.log('Solicitud de cierre de sesión confirmada', name: 'Perfil');
+      await ref.read(loginControllerProvider.notifier).logout();
       clienteVenta = null;
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(
@@ -267,6 +337,45 @@ class _PerfilState extends State<Perfil> with SingleTickerProviderStateMixin {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _UserDataRow extends StatelessWidget {
+  const _UserDataRow({
+    required this.label,
+    required this.value,
+    required this.isDark,
+  });
+
+  final String label;
+  final String value;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDark ? Colors.white70 : Colors.black54;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: color,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 15,
+            color: isDark ? Colors.white : Colors.black87,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
