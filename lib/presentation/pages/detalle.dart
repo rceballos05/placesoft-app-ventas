@@ -237,8 +237,7 @@ class _DetalleState extends ConsumerState<Detalle> {
       final maxLabel = maxAllowedDiscount == _maxDiscount
           ? _maxDiscount.toStringAsFixed(0)
           : '100';
-      _showError(
-          'El descuento debe estar entre 0% y $maxLabel%.');
+      _showError('El descuento debe estar entre 0% y $maxLabel%.');
     }
     _discountPercent = capped.toDouble();
     _recalculateTotals();
@@ -935,8 +934,7 @@ class _DiscountSection extends StatelessWidget {
             filled: true,
             fillColor: Colors.white.withOpacity(0.16),
             suffixText: '%',
-            suffixStyle:
-                textTheme.titleMedium?.copyWith(color: Colors.white70),
+            suffixStyle: textTheme.titleMedium?.copyWith(color: Colors.white70),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(20),
               borderSide: BorderSide.none,
@@ -1015,7 +1013,7 @@ class _NotesField extends StatelessWidget {
           decoration: InputDecoration(
             counterStyle:
                 theme.textTheme.labelSmall?.copyWith(color: Colors.white70),
-            hintText: 'Agregar indicaciones para el despacho…',
+            hintText: 'Agregar Observaciones...',
             hintStyle:
                 theme.textTheme.bodyLarge?.copyWith(color: Colors.white54),
             filled: true,

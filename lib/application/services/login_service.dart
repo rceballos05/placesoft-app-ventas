@@ -152,8 +152,13 @@ class LoginService {
         if (onlineOk) {
           await asegurarBaseLocal(prefijo);
           final databasePath = await _resolveLocalDatabase(prefijo);
-          final user =
-              _onlineUserCache ?? User(rut: rutData.database, prefijo: prefijo);
+          final user = _onlineUserCache ??
+              User(
+                  rut: rutData.database,
+                  prefijo: prefijo,
+                  caja: caja,
+                  maxDcto: descuento,
+                  nombre: "");
           _lastLoginResult = LoginResult(
             user: user,
             databaseAssetPath: databasePath,
@@ -205,6 +210,9 @@ class LoginService {
     return false;
   }
 
+  String caja = "";
+  double descuento = 0;
+
   /// Retrieves the company prefix associated to the provided [rut].
   Future<String?> obtenerPrefijo(String rut) async {
     final rutData = _normalizeRut(rut);
@@ -226,6 +234,8 @@ class LoginService {
       }
       final data = items.first as Map<String, dynamic>;
       final prefijo = data['prefijo'] as String?;
+      caja = data['caja'] as String? ?? "";
+      descuento = data['maxDctoProducto'] as double? ?? 0;
       if (prefijo == null || prefijo.isEmpty) {
         throw Failure('Respuesta inválida del servidor');
       }
@@ -266,11 +276,24 @@ class LoginService {
         final responseRut = (item['rut'] as String?) ?? rut;
         final normalizedRut = RutUtils.toDatabaseFormat(responseRut);
         final responsePrefix = (item['prefijo'] as String?) ?? prefijo;
-        _onlineUserCache = User(rut: normalizedRut, prefijo: responsePrefix);
+        final responseNombre = (item['nombre'] as String?) ?? "";
+        final cajaRsp = (item['caja'] as String?) ?? caja;
+        final maxDcto = (item['maxDctoProducto'] as double?) ?? descuento;
+        _onlineUserCache = User(
+            rut: normalizedRut,
+            prefijo: responsePrefix,
+            caja: cajaRsp,
+            maxDcto: maxDcto,
+            nombre: responseNombre);
         await _updateLocalLoginDatabase(normalizedRut, responsePrefix, pass);
       } else {
         final normalizedRut = RutUtils.toDatabaseFormat(rut);
-        _onlineUserCache = User(rut: normalizedRut, prefijo: prefijo);
+        _onlineUserCache = User(
+            rut: normalizedRut,
+            prefijo: prefijo,
+            caja: caja,
+            maxDcto: descuento,
+            nombre: "");
         await _updateLocalLoginDatabase(normalizedRut, prefijo, pass);
       }
       developer.log('Login remoto exitoso para ${RutUtils.format(rut)}',
@@ -303,10 +326,18 @@ class LoginService {
           final row = results.first;
           final storedPassword = (row['password'] as String?) ?? '';
           final prefix = (row['prefijo'] as String?) ?? '';
+          final caja = (row['caja'] as String?) ?? '';
+          final nombre = (row['nombre'] as String?) ?? '';
+          final dcto = (row['max_dcto'] as double?) ?? 0;
           final hashedIncoming = _hashPassword(pass);
           if (prefix.isNotEmpty &&
               (storedPassword == pass || storedPassword == hashedIncoming)) {
-            _offlineUserCache = User(rut: rut, prefijo: prefix);
+            _offlineUserCache = User(
+                rut: rut,
+                prefijo: prefix,
+                caja: caja,
+                maxDcto: dcto,
+                nombre: nombre);
             return true;
           }
         }
@@ -327,7 +358,12 @@ class LoginService {
             name: 'LoginService');
         return false;
       }
-      _offlineUserCache = User(rut: rut, prefijo: cachedCredentials.prefix);
+      _offlineUserCache = User(
+          rut: rut,
+          prefijo: cachedCredentials.prefix,
+          caja: "",
+          maxDcto: 0,
+          nombre: "");
       return true;
     } on DatabaseException catch (error) {
       developer.log('Error accediendo a la base de login offline',
