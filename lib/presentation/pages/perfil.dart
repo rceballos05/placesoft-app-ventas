@@ -119,7 +119,9 @@ class _PerfilState extends ConsumerState<Perfil>
     final isLoggedIn = user != null;
     final nombre = user?.nombre ?? 'Usuario';
     final rut = user?.rut ?? 'Sin sesión activa';
-    final cajaAsignada = (user?.caja ?? '').isEmpty ? 'No asignada' : user!.caja;
+    final cajaAsignadaValue = user?.caja;
+    final cajaAsignada =
+        (cajaAsignadaValue == null || cajaAsignadaValue.isEmpty) ? 'No asignada' : cajaAsignadaValue;
     final prefijo = user?.prefijo ?? '—';
     final maxDctoLabel = user != null
         ? '${user.maxDcto.toStringAsFixed(2)}%'
