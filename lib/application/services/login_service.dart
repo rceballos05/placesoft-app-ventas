@@ -108,6 +108,9 @@ class LoginService {
     _lastFailure = null;
     _onlineUserCache = null;
     _offlineUserCache = null;
+    caja = '';
+    descuento = 0;
+    nombreUsuario = '';
 
     final trimmedPassword = pass.trim();
     if (trimmedPassword.isEmpty) {
@@ -212,6 +215,7 @@ class LoginService {
 
   String caja = "";
   double descuento = 0;
+  String nombreUsuario = "";
 
   /// Retrieves the company prefix associated to the provided [rut].
   Future<String?> obtenerPrefijo(String rut) async {
@@ -233,9 +237,20 @@ class LoginService {
         return null;
       }
       final data = items.first as Map<String, dynamic>;
-      final prefijo = data['prefijo'] as String?;
-      caja = data['caja'] as String? ?? "";
-      descuento = data['maxDctoProducto'] as double? ?? 0;
+      final prefijo =
+          _stringFromValue(data['prefijo'])?.trim();
+      caja = _stringFromValue(data['caja']) ??
+          _stringFromValue(data['caja_doc']) ??
+          "";
+      descuento = _doubleFromValue(
+        data['maxDctoProducto'] ??
+            data['max_dcto'] ??
+            data['descuento'],
+        fallback: 0,
+      );
+      nombreUsuario = _stringFromValue(data['nombre']) ??
+          _stringFromValue(data['nombreUsuario']) ??
+          nombreUsuario;
       if (prefijo == null || prefijo.isEmpty) {
         throw Failure('Respuesta inválida del servidor');
       }
@@ -276,16 +291,32 @@ class LoginService {
         final responseRut = (item['rut'] as String?) ?? rut;
         final normalizedRut = RutUtils.toDatabaseFormat(responseRut);
         final responsePrefix = (item['prefijo'] as String?) ?? prefijo;
-        final responseNombre = (item['nombre'] as String?) ?? "";
-        final cajaRsp = (item['caja'] as String?) ?? caja;
-        final maxDcto = (item['maxDctoProducto'] as double?) ?? descuento;
+        final responseNombre =
+            _stringFromValue(item['nombre']) ??
+                _stringFromValue(item['nombreUsuario']) ??
+                nombreUsuario;
+        final cajaRsp = _stringFromValue(item['caja']) ??
+            _stringFromValue(item['caja_doc']) ??
+            caja;
+        final maxDcto = _doubleFromValue(
+          item['maxDctoProducto'] ??
+              item['max_dcto'] ??
+              item['descuento'],
+          fallback: descuento,
+        );
         _onlineUserCache = User(
             rut: normalizedRut,
             prefijo: responsePrefix,
             caja: cajaRsp,
             maxDcto: maxDcto,
             nombre: responseNombre);
-        await _updateLocalLoginDatabase(normalizedRut, responsePrefix, pass);
+        await _updateLocalLoginDatabase(
+          normalizedRut,
+          responsePrefix,
+          pass,
+          caja: cajaRsp,
+          maxDcto: maxDcto,
+        );
       } else {
         final normalizedRut = RutUtils.toDatabaseFormat(rut);
         _onlineUserCache = User(
@@ -293,8 +324,14 @@ class LoginService {
             prefijo: prefijo,
             caja: caja,
             maxDcto: descuento,
-            nombre: "");
-        await _updateLocalLoginDatabase(normalizedRut, prefijo, pass);
+            nombre: nombreUsuario);
+        await _updateLocalLoginDatabase(
+          normalizedRut,
+          prefijo,
+          pass,
+          caja: caja,
+          maxDcto: descuento,
+        );
       }
       developer.log('Login remoto exitoso para ${RutUtils.format(rut)}',
           name: 'LoginService');
@@ -324,11 +361,11 @@ class LoginService {
             await db.query('login', where: 'rut = ?', whereArgs: <Object>[rut]);
         if (results.isNotEmpty) {
           final row = results.first;
-          final storedPassword = (row['password'] as String?) ?? '';
-          final prefix = (row['prefijo'] as String?) ?? '';
-          final caja = (row['caja'] as String?) ?? '';
-          final nombre = (row['nombre'] as String?) ?? '';
-          final dcto = (row['max_dcto'] as double?) ?? 0;
+          final storedPassword = _stringFromValue(row['password']) ?? '';
+          final prefix = _stringFromValue(row['prefijo']) ?? '';
+          final caja = _stringFromValue(row['caja']) ?? '';
+          final nombre = _stringFromValue(row['nombre']) ?? '';
+          final dcto = _doubleFromValue(row['max_dcto']);
           final hashedIncoming = _hashPassword(pass);
           if (prefix.isNotEmpty &&
               (storedPassword == pass || storedPassword == hashedIncoming)) {
@@ -496,8 +533,8 @@ class LoginService {
     return destination;
   }
 
-  Future<void> _updateLocalLoginDatabase(
-      String rut, String prefijo, String password) async {
+  Future<void> _updateLocalLoginDatabase(String rut, String prefijo, String password,
+      {required String caja, required double maxDcto}) async {
     final loginDbPath = await _prepareLoginDatabase();
     final db = await openDatabase(loginDbPath);
     try {
@@ -507,9 +544,9 @@ class LoginService {
           'rut': rut,
           'password': _hashPassword(password),
           'prefijo': prefijo,
-          'caja': '',
+          'caja': caja,
           'url_imagen': '',
-          'max_dcto': 0,
+          'max_dcto': maxDcto,
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -574,5 +611,35 @@ class LoginService {
     final bytes = utf8.encode(password);
     final digest = sha256.convert(bytes);
     return digest.toString();
+  }
+
+  String? _stringFromValue(dynamic value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) {
+        return null;
+      }
+      return trimmed;
+    }
+    if (value is num || value is bool) {
+      return value.toString();
+    }
+    return null;
+  }
+
+  double _doubleFromValue(dynamic value, {double fallback = 0}) {
+    if (value is num) {
+      return value.toDouble();
+    }
+    if (value is String) {
+      final parsed = double.tryParse(value);
+      if (parsed != null) {
+        return parsed;
+      }
+    }
+    return fallback;
   }
 }
