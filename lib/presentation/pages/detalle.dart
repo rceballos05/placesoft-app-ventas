@@ -69,8 +69,8 @@ class _DetalleState extends ConsumerState<Detalle> {
   void initState() {
     super.initState();
     _detailFuture = _loadDetail();
-    _loginSubscription = ref.listenManual<LoginState>(
-        loginControllerProvider, (previous, next) {
+    _loginSubscription =
+        ref.listenManual<LoginState>(loginControllerProvider, (previous, next) {
       if (!mounted) {
         return;
       }
@@ -78,8 +78,9 @@ class _DetalleState extends ConsumerState<Detalle> {
         developer.log('Estado de login sin usuario al actualizar descuentos',
             name: 'Detalle');
       }
-      _updateDiscountLimits();
+      // _updateDiscountLimits();
     });
+    _updateDiscountLimits();
   }
 
   @override
@@ -144,7 +145,8 @@ class _DetalleState extends ConsumerState<Detalle> {
             ? min(detalle.maxDiscount, user.maxDcto)
             : detalle.maxDiscount;
         if (user == null) {
-          developer.log('No hay usuario para limitar descuento; se usará el '
+          developer.log(
+              'No hay usuario para limitar descuento; se usará el '
               'valor del producto (${detalle.maxDiscount})',
               name: 'Detalle');
         }
@@ -153,7 +155,7 @@ class _DetalleState extends ConsumerState<Detalle> {
           _imageUrl = detalle.imageUrl;
           _unitPrice = max(0, detalle.producto.precio);
           _productMaxDiscount = max(0, detalle.maxDiscount);
-          _maxDiscount = max(0, effectiveMaxDiscount);
+          // _maxDiscount = max(0, effectiveMaxDiscount);
           _quantity = 1;
           _discountPercent = 0;
           _quantityController.text = '1';
@@ -515,35 +517,21 @@ class _DetalleState extends ConsumerState<Detalle> {
     if (_producto == null && productLimit == null) {
       developer.log('No hay producto cargado para actualizar descuentos',
           name: 'Detalle');
-      return;
+      // return;
     }
 
     final user = loginState.user;
     if (user == null) {
       developer.log('No hay usuario activo al actualizar límites de descuento',
           name: 'Detalle');
-    }
-    final rawEffectiveMax = user != null
-        ? min(sanitizedProductLimit, user.maxDcto)
-        : sanitizedProductLimit;
-    final effectiveMax = rawEffectiveMax.isFinite
-        ? max(0, rawEffectiveMax)
-        : 0.0;
-    final updatedDiscountPercent = min(_discountPercent, effectiveMax);
-
-    final shouldUpdateState =
-        _productMaxDiscount != sanitizedProductLimit ||
-        _maxDiscount != effectiveMax ||
-        _discountPercent != updatedDiscountPercent;
-    if (!shouldUpdateState) {
       return;
     }
 
     setState(() {
-      _productMaxDiscount = sanitizedProductLimit;
-      _maxDiscount = effectiveMax;
-      _discountPercent = updatedDiscountPercent;
-      _discountController.text = _discountPercent.toStringAsFixed(0);
+      _productMaxDiscount = sanitizedProductLimit.toDouble();
+      _maxDiscount = user.maxDcto;
+
+      _discountController.text = _maxDiscount.toStringAsFixed(0);
     });
     _recalculateTotals();
   }
