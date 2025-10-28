@@ -26,6 +26,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _passwordController = TextEditingController();
   final _rutFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
+  bool _showRutKeyboard = false;
   bool _rememberMe = false;
   bool _downloadAfterLogin = true;
   bool _syncAfterLogin = false;
@@ -34,7 +35,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _suppressSyncAlerts = false;
 
   @override
+  void initState() {
+    super.initState();
+    _rutFocusNode.addListener(_handleRutFocusChange);
+  }
+
+  @override
   void dispose() {
+    _rutFocusNode.removeListener(_handleRutFocusChange);
     _rutController.dispose();
     _passwordController.dispose();
     _rutFocusNode.dispose();
@@ -157,14 +165,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 controller: _passwordController,
                                 obscureText: true,
                                 focusNode: _passwordFocusNode,
-                                keyboardType: TextInputType.none,
-                                readOnly: true,
-                                showCursor: true,
+                                keyboardType: TextInputType.visiblePassword,
+                                textInputAction: TextInputAction.done,
                                 decoration: const InputDecoration(
                                   labelText: 'Contraseña',
                                   prefixIcon: Icon(Icons.lock_outline),
                                 ),
-                                onTap: () => _onFieldTapped(_passwordFocusNode),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'La contraseña es obligatoria';
@@ -184,9 +190,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 title: const Text('Recordarme'),
                               ),
                               const Divider(height: 32),
-                              NumericKeyboard(
-                                onKeyTap: _onKeyboardKeyTap,
-                                onBackspace: _onKeyboardBackspace,
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 250),
+                                transitionBuilder:
+                                    (Widget child, Animation<double> animation) {
+                                  return SizeTransition(
+                                    sizeFactor: animation,
+                                    axisAlignment: -1,
+                                    child: child,
+                                  );
+                                },
+                                child: _showRutKeyboard
+                                    ? NumericKeyboard(
+                                        key: const ValueKey('rut_keyboard'),
+                                        onKeyTap: _onKeyboardKeyTap,
+                                        onBackspace: _onKeyboardBackspace,
+                                      )
+                                    : const SizedBox.shrink(
+                                        key: ValueKey('empty_keyboard'),
+                                      ),
                               ),
                               CheckboxListTile(
                                 value: _downloadAfterLogin,
@@ -274,6 +296,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       return;
     }
     _deleteText(controller);
+  }
+
+  void _handleRutFocusChange() {
+    setState(() {
+      _showRutKeyboard = _rutFocusNode.hasFocus;
+    });
   }
 
   TextEditingController? get _activeController {
