@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
 import 'package:aplicacion_ventas/core/utils/screen_utils.dart';
 import 'package:aplicacion_ventas/presentation/pages/home_page.dart';
+import 'package:aplicacion_ventas/presentation/widgets/numeric_keyboard.dart';
 import 'package:aplicacion_ventas/utils/rut_utils.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Login screen that authenticates the user and triggers sync tasks.
 class LoginPage extends ConsumerStatefulWidget {
@@ -21,6 +24,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _rutController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _rutFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
   bool _rememberMe = false;
   bool _downloadAfterLogin = true;
   bool _syncAfterLogin = false;
@@ -32,6 +37,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   void dispose() {
     _rutController.dispose();
     _passwordController.dispose();
+    _rutFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -123,7 +130,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             children: [
                               TextFormField(
                                 controller: _rutController,
-                                keyboardType: TextInputType.number,
+                                focusNode: _rutFocusNode,
+                                keyboardType: TextInputType.none,
+                                readOnly: true,
+                                showCursor: true,
                                 decoration: const InputDecoration(
                                   labelText: 'RUT',
                                   hintText: 'Ej: 11.111.111-1',
@@ -131,6 +141,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   border: OutlineInputBorder(),
                                 ),
                                 inputFormatters: [RutInputFormatter()],
+                                onTap: () => _onFieldTapped(_rutFocusNode),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'Ingrese su RUT';
@@ -145,10 +156,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               TextFormField(
                                 controller: _passwordController,
                                 obscureText: true,
+                                focusNode: _passwordFocusNode,
+                                keyboardType: TextInputType.none,
+                                readOnly: true,
+                                showCursor: true,
                                 decoration: const InputDecoration(
                                   labelText: 'Contraseña',
                                   prefixIcon: Icon(Icons.lock_outline),
                                 ),
+                                onTap: () => _onFieldTapped(_passwordFocusNode),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
                                     return 'La contraseña es obligatoria';
@@ -168,6 +184,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 title: const Text('Recordarme'),
                               ),
                               const Divider(height: 32),
+                              NumericKeyboard(
+                                onKeyTap: _onKeyboardKeyTap,
+                                onBackspace: _onKeyboardBackspace,
+                              ),
                               CheckboxListTile(
                                 value: _downloadAfterLogin,
                                 onChanged: state.isLoggingIn
@@ -230,6 +250,99 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final rut = RutUtils.toDatabaseFormat(_rutController.text);
     final password = _passwordController.text.trim();
     ref.read(loginControllerProvider.notifier).login(rut, password);
+  }
+
+  void _onFieldTapped(FocusNode focusNode) {
+    FocusScope.of(context).requestFocus(focusNode);
+    final controller = _controllerForFocus(focusNode);
+    if (controller != null) {
+      controller.selection = TextSelection.collapsed(offset: controller.text.length);
+    }
+  }
+
+  void _onKeyboardKeyTap(String key) {
+    final controller = _activeController;
+    if (controller == null) {
+      return;
+    }
+    _insertText(controller, key.toUpperCase());
+  }
+
+  void _onKeyboardBackspace() {
+    final controller = _activeController;
+    if (controller == null) {
+      return;
+    }
+    _deleteText(controller);
+  }
+
+  TextEditingController? get _activeController {
+    if (_rutFocusNode.hasFocus) {
+      return _rutController;
+    }
+    if (_passwordFocusNode.hasFocus) {
+      return _passwordController;
+    }
+    return null;
+  }
+
+  TextEditingController? _controllerForFocus(FocusNode node) {
+    if (node == _rutFocusNode) {
+      return _rutController;
+    }
+    if (node == _passwordFocusNode) {
+      return _passwordController;
+    }
+    return null;
+  }
+
+  void _insertText(TextEditingController controller, String text) {
+    final oldValue = controller.value;
+    final selection = oldValue.selection;
+    final start = selection.isValid ? selection.start : oldValue.text.length;
+    final end = selection.isValid ? selection.end : oldValue.text.length;
+    final newText = oldValue.text.replaceRange(start, end, text);
+    var newValue = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + text.length),
+    );
+    if (controller == _rutController) {
+      newValue = RutInputFormatter().formatEditUpdate(oldValue, newValue);
+    }
+    controller.value = newValue;
+  }
+
+  void _deleteText(TextEditingController controller) {
+    final oldValue = controller.value;
+    final selection = oldValue.selection;
+    if (oldValue.text.isEmpty) {
+      return;
+    }
+
+    if (selection.isValid && !selection.isCollapsed) {
+      _replaceRange(controller, selection.start, selection.end, '');
+      return;
+    }
+
+    final caretIndex = selection.isValid ? selection.start : oldValue.text.length;
+    if (caretIndex == 0) {
+      return;
+    }
+    _replaceRange(controller, caretIndex - 1, caretIndex, '');
+  }
+
+  void _replaceRange(
+      TextEditingController controller, int start, int end, String replacement) {
+    final oldValue = controller.value;
+    final newText = oldValue.text.replaceRange(start, end, replacement);
+    var newValue = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + replacement.length),
+    );
+    if (controller == _rutController) {
+      newValue = RutInputFormatter().formatEditUpdate(oldValue, newValue);
+    }
+    controller.value = newValue;
   }
 
   Future<void> _handleSuccessfulLogin(LoginState state) async {
