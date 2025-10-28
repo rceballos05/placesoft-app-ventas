@@ -53,7 +53,7 @@ class _PerfilState extends ConsumerState<Perfil>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final loginState = ref.watch(loginControllerProvider);
+    final loginState = ref.read(loginControllerProvider);
     final currentUser = loginState.user;
     if (currentUser == null) {
       developer.log('Perfil renderizado sin usuario autenticado',
@@ -121,7 +121,9 @@ class _PerfilState extends ConsumerState<Perfil>
     final rut = user?.rut ?? 'Sin sesión activa';
     final cajaAsignadaValue = user?.caja;
     final cajaAsignada =
-        (cajaAsignadaValue == null || cajaAsignadaValue.isEmpty) ? 'No asignada' : cajaAsignadaValue;
+        (cajaAsignadaValue == null || cajaAsignadaValue.isEmpty)
+            ? 'No asignada'
+            : cajaAsignadaValue;
     final prefijo = user?.prefijo ?? '—';
     final maxDctoLabel = user != null
         ? '${user.maxDcto.toStringAsFixed(2)}%'
@@ -133,113 +135,113 @@ class _PerfilState extends ConsumerState<Perfil>
     }
 
     return Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDark
-                ? [Colors.deepPurple.shade900, Colors.black]
-                : [Colors.blue.shade300, Colors.deepPurple.shade200],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [Colors.deepPurple.shade900, Colors.black]
+              : [Colors.blue.shade300, Colors.deepPurple.shade200],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                const CircleAvatar(
-                  radius: 50,
-                  backgroundImage: NetworkImage(
-                    'https://e7.pngegg.com/pngimages/644/920/png-clipart-computer-icons-user-profile-avatar-avatar-white-heroes.png',
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Stack(
+            children: [
+              const CircleAvatar(
+                radius: 50,
+                backgroundImage: NetworkImage(
+                  'https://e7.pngegg.com/pngimages/644/920/png-clipart-computer-icons-user-profile-avatar-avatar-white-heroes.png',
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  height: 32,
+                  width: 32,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    LineAwesomeIcons.pen,
+                    color: Colors.deepPurple,
+                    size: 18,
                   ),
                 ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    height: 32,
-                    width: 32,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            nombre,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          Text(
+            rut,
+            style: TextStyle(
+              fontSize: 14,
+              color: isDark ? Colors.white70 : Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _UserDataRow(
+                      label: 'Caja asignada',
+                      value: cajaAsignada,
+                      isDark: isDark,
                     ),
-                    child: const Icon(
-                      LineAwesomeIcons.pen,
-                      color: Colors.deepPurple,
-                      size: 18,
+                    const SizedBox(height: 8),
+                    _UserDataRow(
+                      label: 'Prefijo',
+                      value: prefijo,
+                      isDark: isDark,
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              nombre,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black87,
-              ),
-            ),
-            Text(
-              rut,
-              style: TextStyle(
-                fontSize: 14,
-                color: isDark ? Colors.white70 : Colors.black54,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _UserDataRow(
-                        label: 'Caja asignada',
-                        value: cajaAsignada,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(height: 8),
-                      _UserDataRow(
-                        label: 'Prefijo',
-                        value: prefijo,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(height: 8),
-                      _UserDataRow(
-                        label: 'Descuento máximo',
-                        value: maxDctoLabel,
-                        isDark: isDark,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (!isLoggedIn)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Text(
-                  'Inicia sesión nuevamente para ver los datos actualizados.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: isDark ? Colors.white70 : Colors.black54,
-                    fontSize: 13,
-                  ),
+                    const SizedBox(height: 8),
+                    _UserDataRow(
+                      label: 'Descuento máximo',
+                      value: maxDctoLabel,
+                      isDark: isDark,
+                    ),
+                  ],
                 ),
               ),
-          ],
-        ),
-      );
+            ],
+          ),
+          if (!isLoggedIn)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Text(
+                'Inicia sesión nuevamente para ver los datos actualizados.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : Colors.black54,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _buildOptions(BuildContext context) => Column(
@@ -247,7 +249,8 @@ class _PerfilState extends ConsumerState<Perfil>
           ProfileListItem(
             icon: LineAwesomeIcons.user,
             text: 'Mostrar Datos',
-            onTap: () => Navigator.pushNamed(context, ModificarDatosPage.routeName),
+            onTap: () =>
+                Navigator.pushNamed(context, ModificarDatosPage.routeName),
           ),
           ProfileListItem(
             icon: LineAwesomeIcons.history,
@@ -257,17 +260,20 @@ class _PerfilState extends ConsumerState<Perfil>
           ProfileListItem(
             icon: LineAwesomeIcons.user_plus,
             text: 'Agregar Cliente',
-            onTap: () => Navigator.pushNamed(context, AgregarClientePage.routeName),
+            onTap: () =>
+                Navigator.pushNamed(context, AgregarClientePage.routeName),
           ),
           ProfileListItem(
             icon: LineAwesomeIcons.user_edit,
             text: 'Modificar Cliente',
-            onTap: () => Navigator.pushNamed(context, ModificarClientePage.routeName),
+            onTap: () =>
+                Navigator.pushNamed(context, ModificarClientePage.routeName),
           ),
           ProfileListItem(
             icon: LineAwesomeIcons.map_marker,
             text: 'Agregar Destino Cliente',
-            onTap: () => Navigator.pushNamed(context, AgregarDestinoPage.routeName),
+            onTap: () =>
+                Navigator.pushNamed(context, AgregarDestinoPage.routeName),
           ),
           ProfileListItem(
             icon: LineAwesomeIcons.key,
