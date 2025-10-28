@@ -53,7 +53,7 @@ class _PerfilState extends ConsumerState<Perfil>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final loginState = ref.read(loginControllerProvider);
+    final loginState = ref.watch(loginControllerProvider);
     final currentUser = loginState.user;
     if (currentUser == null) {
       developer.log('Perfil renderizado sin usuario autenticado',
@@ -79,7 +79,7 @@ class _PerfilState extends ConsumerState<Perfil>
                   const Divider(),
                   const SizedBox(height: 6),
                   Text(
-                    'v1.0.3 — Mundo a la Alegría',
+                    'v1.0.3 — ${currentUser!.prefijo.toUpperCase()}',
                     style: TextStyle(
                       color: isDark ? Colors.white54 : Colors.black45,
                       fontSize: 12,
