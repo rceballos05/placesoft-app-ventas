@@ -7,15 +7,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   final themeModel = ThemeModel();
+  await themeModel.loadThemeMode();
 
   runApp(
     ThemeModelInheritedNotifier(
       notifier: themeModel,
       child: ThemeProvider(
         initTheme: AppTheme.lightTheme,
-        builder: (context, theme) => const ProviderScope(child: MyApp()),
+        builder: (_, __) => const ProviderScope(child: MyApp()),
       ),
     ),
   );
@@ -40,7 +42,7 @@ class MyApp extends ConsumerWidget {
               title: 'Aplicación de Ventas',
               theme: theme, // <-- aquí se aplica el tema actual
               darkTheme: AppTheme.darkTheme,
-              themeMode: themeModel?.themeMode ?? ThemeMode.system,
+              themeMode: themeModel.themeMode,
               routes: AppRouter.routes,
               initialRoute: AppRouter.initialRoute,
             ),

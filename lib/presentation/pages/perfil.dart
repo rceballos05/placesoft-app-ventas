@@ -16,6 +16,7 @@ import 'package:aplicacion_ventas/presentation/widgets/busqueda_cliente.dart';
 import 'package:aplicacion_ventas/presentation/widgets/profile_list_item.dart';
 import 'package:aplicacion_ventas/statics/globals.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 
@@ -31,6 +32,7 @@ class Perfil extends ConsumerStatefulWidget {
 
 class _PerfilState extends ConsumerState<Perfil>
     with SingleTickerProviderStateMixin {
+  static const _themeAnimationDuration = Duration(milliseconds: 400);
   final TextEditingController nuevoPass = TextEditingController();
   late final AnimationController _controller;
   late final Animation<double> _fade;
@@ -157,24 +159,46 @@ class _PerfilState extends ConsumerState<Perfil>
                   ? 'Cambiar a modo claro'
                   : 'Cambiar a modo oscuro',
               onPressed: () {
+                HapticFeedback.lightImpact();
                 final switcher = ThemeSwitcher.of(context);
                 final theme =
                     isCurrentlyDark ? AppTheme.lightTheme : AppTheme.darkTheme;
                 switcher.changeTheme(theme: theme);
-                themeModel?.themeMode =
-                    isCurrentlyDark ? ThemeMode.light : ThemeMode.dark;
+                themeModel?.updateThemeMode(
+                  isCurrentlyDark ? ThemeMode.light : ThemeMode.dark,
+                );
+
+                final snackBarMessage = isCurrentlyDark
+                    ? 'Modo claro activado'
+                    : 'Modo oscuro activado';
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(
+                      content: Text(snackBarMessage),
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
               },
               icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: ScaleTransition(scale: animation, child: child),
-                ),
+                duration: _themeAnimationDuration,
+                transitionBuilder: (child, animation) {
+                  final rotationAnimation =
+                      Tween<double>(begin: 0.75, end: 1).animate(animation);
+                  return FadeTransition(
+                    opacity: animation,
+                    child: RotationTransition(
+                      turns: rotationAnimation,
+                      child: child,
+                    ),
+                  );
+                },
                 child: Text(
                   isCurrentlyDark ? '☀️' : '🌙',
                   key: ValueKey<bool>(isCurrentlyDark),
                   style: theme.textTheme.titleLarge?.copyWith(
                     color: iconColor,
+                    fontSize: 26,
                   ),
                 ),
               ),
@@ -212,18 +236,25 @@ class _PerfilState extends ConsumerState<Perfil>
 
     final gradientColors = isDark
         ? [
-            colorScheme.primary.withOpacity(0.85),
-            colorScheme.surfaceVariant.withOpacity(0.9),
+            Color.lerp(colorScheme.primary, colorScheme.surface, 0.1)!,
+            Color.lerp(colorScheme.secondary, colorScheme.background, 0.6)!,
           ]
         : [
-            colorScheme.primaryContainer,
-            colorScheme.secondaryContainer,
+            Color.lerp(
+              colorScheme.primaryContainer,
+              colorScheme.secondaryContainer,
+              0.4,
+            )!,
+            Color.lerp(colorScheme.secondary, colorScheme.surface, 0.1)!,
           ];
 
-    final cardTextColor = isDark ? Colors.white : Colors.black87;
+    final cardTextColor =
+        isDark ? colorScheme.onPrimary : colorScheme.onPrimaryContainer;
     final subtleTextColor = cardTextColor.withOpacity(0.7);
 
-    return Container(
+    return AnimatedContainer(
+      duration: _themeAnimationDuration,
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: gradientColors,
@@ -233,15 +264,13 @@ class _PerfilState extends ConsumerState<Perfil>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.4 : 0.2),
+            color: theme.shadowColor.withOpacity(isDark ? 0.5 : 0.2),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
         ],
         border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.05),
+          color: colorScheme.outline.withOpacity(isDark ? 0.3 : 0.2),
         ),
       ),
       padding: const EdgeInsets.all(20),
@@ -263,13 +292,14 @@ class _PerfilState extends ConsumerState<Perfil>
                   width: 32,
                   decoration: BoxDecoration(
                     color: isDark
-                        ? colorScheme.onPrimary.withOpacity(0.9)
-                        : Colors.white,
+                        ? colorScheme.surface.withOpacity(0.9)
+                        : colorScheme.surface,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     LineAwesomeIcons.pen,
-                    color: isDark ? colorScheme.primary : colorScheme.secondary,
+                    color:
+                        isDark ? colorScheme.primary : colorScheme.secondary,
                     size: 18,
                   ),
                 ),
@@ -380,8 +410,8 @@ class _PerfilState extends ConsumerState<Perfil>
           ProfileListItem(
             icon: LineAwesomeIcons.alternate_sign_out,
             text: 'Cerrar Sesión',
-            textColor: Colors.redAccent,
-            iconColor: Colors.redAccent,
+            textColor: Theme.of(context).colorScheme.error,
+            iconColor: Theme.of(context).colorScheme.error,
             onTap: () => _cerrarSesion(context),
           ),
         ],

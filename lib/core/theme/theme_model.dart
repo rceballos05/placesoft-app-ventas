@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Holds the current [ThemeMode] and notifies dependants when it changes.
 class ThemeModel extends ChangeNotifier {
@@ -13,12 +14,27 @@ class ThemeModel extends ChangeNotifier {
 
   ThemeMode get themeMode => _themeMode;
 
-  set themeMode(ThemeMode value) {
-    if (value == _themeMode) {
+  set themeMode(ThemeMode value) => updateThemeMode(value);
+
+  void updateThemeMode(ThemeMode newMode) {
+    if (newMode == _themeMode) {
       return;
     }
-    _themeMode = value;
+    _themeMode = newMode;
+    _saveThemeMode(newMode);
     notifyListeners();
+  }
+
+  Future<void> loadThemeMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final index = prefs.getInt('theme_mode') ?? ThemeMode.system.index;
+    _themeMode = ThemeMode.values[index];
+    notifyListeners();
+  }
+
+  Future<void> _saveThemeMode(ThemeMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('theme_mode', mode.index);
   }
 
   /// Returns the nearest [ThemeModel] up the widget tree, listening to updates
