@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:aplicacion_ventas/application/providers/cart_provider.dart';
+import 'package:aplicacion_ventas/providers/cart_provider.dart';
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
 import 'package:aplicacion_ventas/db/db_precios.dart';
 import 'package:aplicacion_ventas/db/db_productos.dart';
@@ -261,18 +261,32 @@ class _HomePageState extends ConsumerState<HomePage> {
     _loadMoreProducts(initial: true, resetCache: true);
   }
 
-  void _addProductToCart(Producto producto) {
+  Future<void> _addProductToCart(Producto producto) async {
     final domainProduct = _mapToDomain(producto);
-    ref.read(cartControllerProvider.notifier).add(domainProduct);
-    if (!mounted) {
-      return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(cartProvider.notifier).addProductFromCatalog(domainProduct);
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('${producto.descripcion} agregado al carro'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      final latestState = ref.read(cartProvider);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(latestState.errorMessage ?? 'No se pudo agregar el producto.'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${producto.descripcion} agregado al carro'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
   }
 
   Future<void> _openSearch(BuildContext context) async {
