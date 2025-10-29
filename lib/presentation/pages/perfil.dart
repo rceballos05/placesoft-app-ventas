@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 
-import 'package:animated_theme_switcher/animated_theme_switcher.dart';
+import 'package:animated_theme_switcher/animated_theme_switcher.dart'
+    hide ThemeModel;
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
 import 'package:aplicacion_ventas/core/theme/app_theme.dart';
 import 'package:aplicacion_ventas/core/theme/theme_model.dart';
@@ -146,10 +147,10 @@ class _PerfilState extends ConsumerState<Perfil>
         const SizedBox(width: 8),
         ThemeSwitcher(
           builder: (context) {
-            final isCurrentlyDark = Theme.of(context).brightness == Brightness.dark;
-            final iconColor = isCurrentlyDark
-                ? colorScheme.secondary
-                : colorScheme.primary;
+            final isCurrentlyDark =
+                Theme.of(context).brightness == Brightness.dark;
+            final iconColor =
+                isCurrentlyDark ? colorScheme.secondary : colorScheme.primary;
 
             return IconButton(
               tooltip: isCurrentlyDark
@@ -268,9 +269,7 @@ class _PerfilState extends ConsumerState<Perfil>
                   ),
                   child: Icon(
                     LineAwesomeIcons.pen,
-                    color: isDark
-                        ? colorScheme.primary
-                        : colorScheme.secondary,
+                    color: isDark ? colorScheme.primary : colorScheme.secondary,
                     size: 18,
                   ),
                 ),
