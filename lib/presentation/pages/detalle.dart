@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'dart:math';
-import 'package:aplicacion_ventas/application/providers/cart_provider.dart';
+import 'package:aplicacion_ventas/providers/cart_provider.dart';
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
 import 'package:aplicacion_ventas/db/db_precios.dart';
 import 'package:aplicacion_ventas/db/productos.dart';
-import 'package:aplicacion_ventas/domain/entities/product.dart' as domain;
 import 'package:aplicacion_ventas/models/producto.dart';
+import 'package:aplicacion_ventas/models/rollo_terreno.dart';
 import 'package:aplicacion_ventas/presentation/pages/cart_page.dart';
 import 'package:aplicacion_ventas/presentation/widgets/busqueda_producto.dart';
 import 'package:currency_formatter/currency_formatter.dart';
@@ -307,12 +307,12 @@ class _DetalleState extends ConsumerState<Detalle> {
       return;
     }
 
-    final cart = ref.read(cartControllerProvider);
-    if (cart.items.any((item) => item.product.code == detail.codigobarra)) {
+    final cartState = ref.read(cartProvider);
+    if (cartState.items.any((item) => item.rollo.artCodigo == detail.codigobarra)) {
       _showError('El producto ya fue agregado al carrito.');
       return;
     }
-    if (cart.items.length >= 32) {
+    if (cartState.items.length >= 32) {
       _showError('Se alcanzó el máximo de 32 productos en el carro.');
       return;
     }
@@ -322,26 +322,26 @@ class _DetalleState extends ConsumerState<Detalle> {
 
     try {
       final now = DateTime.now();
-      final lineNumber = await DBRollo.getNextLineNumber();
       final unitPriceWithDiscount = _quantity > 0
           ? (_total / _quantity).roundToDouble()
           : _total.toDouble();
       final transactionDate = now.toIso8601String();
       final time = _formatTime(now);
-      final rut = user.rut;
+      final local = user.prefijo;
+      final caja = user.caja;
+      final notes = _notesController.text.trim();
 
-      final rollo = LocalRollo(
-        local: '00',
-        cajaDoc: '00',
-        lineaVenta: lineNumber.toDouble(),
-        rutCajero: rut,
+      final rollo = RolloTerreno(
+        local: (local == null || local.isEmpty) ? '00' : local,
+        cajaDoc: (caja == null || caja.isEmpty) ? '00' : caja,
+        rutCajero: user.rut,
         artCantidad: _quantity.toDouble(),
         artCodigo: detail.codigobarra,
         artDescripcion: detail.descripcion,
         artDescuento: _discountPercent,
         artPrecio: unitPriceWithDiscount,
         totalLinea: _total.toDouble(),
-        rutVendedor: rut,
+        rutVendedor: user.rut,
         fechaTransaccion: transactionDate,
         horaTransaccion: time,
         tipoVenta: 'NPE',
@@ -349,30 +349,10 @@ class _DetalleState extends ConsumerState<Detalle> {
         porceImpuesto: 0,
       );
 
-      await DBRollo.insert(rollo);
-      final notes = _notesController.text.trim();
-      if (notes.isNotEmpty) {
-        await DBRolloObservaciones.insert(
-          LocalRolloObservaciones(
-            codigo: detail.codigobarra,
-            fecha: transactionDate,
-            caja: '00',
-            observaciones: notes,
-          ),
-        );
-      }
-
-      final domainProduct = domain.Product(
-        code: detail.codigobarra,
-        description: detail.descripcion,
-        price: unitPriceWithDiscount,
-        discount: _discountPercent,
-        imageUrl: _imageUrl ?? '',
-      );
-      final controller = ref.read(cartControllerProvider.notifier);
-      for (var i = 0; i < _quantity; i++) {
-        controller.add(domainProduct);
-      }
+      await ref.read(cartProvider.notifier).addProduct(
+            rollo,
+            observationText: notes.isEmpty ? null : notes,
+          );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -1270,146 +1250,4 @@ class _ProductDetail {
   final Producto producto;
   final String imageUrl;
   final double maxDiscount;
-}
-
-class LocalRollo {
-  const LocalRollo({
-    required this.local,
-    required this.cajaDoc,
-    required this.lineaVenta,
-    required this.rutCajero,
-    required this.artCantidad,
-    required this.artCodigo,
-    required this.artDescripcion,
-    required this.artDescuento,
-    required this.artPrecio,
-    required this.totalLinea,
-    required this.rutVendedor,
-    required this.fechaTransaccion,
-    required this.horaTransaccion,
-    required this.tipoVenta,
-    required this.codImpuesto,
-    required this.porceImpuesto,
-  });
-
-  final String local;
-  final String cajaDoc;
-  final double lineaVenta;
-  final String rutCajero;
-  final double artCantidad;
-  final String artCodigo;
-  final String artDescripcion;
-  final double artDescuento;
-  final double artPrecio;
-  final double totalLinea;
-  final String rutVendedor;
-  final String fechaTransaccion;
-  final String horaTransaccion;
-  final String tipoVenta;
-  final String codImpuesto;
-  final double porceImpuesto;
-
-  Map<String, Object?> toMap() {
-    return {
-      'local': local,
-      'caja_doc': cajaDoc,
-      'linea_venta': lineaVenta,
-      'rut_cajero': rutCajero,
-      'art_cantidad': artCantidad,
-      'art_codigo': artCodigo,
-      'art_descripcion': artDescripcion,
-      'art_descuento': artDescuento,
-      'art_precio': artPrecio,
-      'total_linea': totalLinea,
-      'rut_vendedor': rutVendedor,
-      'fecha_transaccion': fechaTransaccion,
-      'hora_transaccion': horaTransaccion,
-      'tipoventa': tipoVenta,
-      'cod_impuesto': codImpuesto,
-      'porce_impuesto': porceImpuesto,
-    };
-  }
-}
-
-class LocalRolloObservaciones {
-  const LocalRolloObservaciones({
-    required this.codigo,
-    required this.fecha,
-    required this.caja,
-    required this.observaciones,
-  });
-
-  final String codigo;
-  final String fecha;
-  final String caja;
-  final String observaciones;
-
-  Map<String, Object?> toMap() {
-    return {
-      'codigo': codigo,
-      'fecha': fecha,
-      'caja': caja,
-      'observaciones': observaciones,
-    };
-  }
-}
-
-class DBRollo {
-  const DBRollo._();
-
-  static const _tableName = 'tbl_rollo_terreno_00';
-
-  static Future<int> getNextLineNumber() async {
-    final db = await _open();
-    try {
-      final result = await db
-          .rawQuery('SELECT MAX(linea_venta) as max_line FROM $_tableName');
-      var current = 0;
-      if (result.isNotEmpty) {
-        final value = result.first['max_line'];
-        if (value is num) {
-          current = value.toInt();
-        } else if (value is String) {
-          current = int.tryParse(value) ?? 0;
-        }
-      }
-      return current + 1;
-    } finally {
-      await db.close();
-    }
-  }
-
-  static Future<void> insert(LocalRollo rollo) async {
-    final db = await _open();
-    try {
-      await db.insert(_tableName, rollo.toMap());
-    } finally {
-      await db.close();
-    }
-  }
-
-  static Future<Database> _open() async {
-    final path = await _databasePath();
-    return openDatabase(path);
-  }
-
-  static Future<String> _databasePath() async {
-    final databasesPath = await getDatabasesPath();
-    return p.join(databasesPath, 'rollo.db');
-  }
-}
-
-class DBRolloObservaciones {
-  const DBRolloObservaciones._();
-
-  static const _tableName = 'local_rollo_observaciones_00';
-
-  static Future<void> insert(LocalRolloObservaciones observacion) async {
-    final db = await DBRollo._open();
-    try {
-      await db.insert(_tableName, observacion.toMap());
-    } finally {
-      await db.close();
-    }
-  }
 }

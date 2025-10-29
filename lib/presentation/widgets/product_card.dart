@@ -1,4 +1,4 @@
-import 'package:aplicacion_ventas/application/providers/cart_provider.dart';
+import 'package:aplicacion_ventas/providers/cart_provider.dart';
 import 'package:aplicacion_ventas/domain/entities/product.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +17,7 @@ class ProductCard extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
-        onTap: () => ref.read(cartControllerProvider.notifier).add(product),
+        onTap: () => ref.read(cartProvider.notifier).addProductFromCatalog(product),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
