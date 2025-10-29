@@ -16,9 +16,9 @@ class CartPage extends ConsumerWidget {
     final theme = Theme.of(context);
 
     if (cart.isLoading) {
-      return const Scaffold(
-        appBar: AppBar(title: Text('Carro de compras')),
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        appBar: AppBar(title: const Text('Carro de compras')),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -42,7 +42,8 @@ class CartPage extends ConsumerWidget {
                   children: [
                     const Icon(Icons.remove_shopping_cart_outlined, size: 72),
                     const SizedBox(height: 16),
-                    Text('Tu carro está vacío', style: theme.textTheme.headlineSmall),
+                    Text('Tu carro está vacío',
+                        style: theme.textTheme.headlineSmall),
                     const SizedBox(height: 8),
                     Text(
                       'Agrega productos desde el catálogo para continuar.',
@@ -54,7 +55,8 @@ class CartPage extends ConsumerWidget {
                       Text(
                         cart.errorMessage!,
                         textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.error),
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(color: theme.colorScheme.error),
                       ),
                     ],
                   ],
@@ -77,7 +79,8 @@ class CartPage extends ConsumerWidget {
                         padding: const EdgeInsets.all(12),
                         child: Row(
                           children: [
-                            Icon(Icons.error_outline, color: theme.colorScheme.onErrorContainer),
+                            Icon(Icons.error_outline,
+                                color: theme.colorScheme.onErrorContainer),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
@@ -95,7 +98,8 @@ class CartPage extends ConsumerWidget {
                 Expanded(
                   child: ListView.builder(
                     itemCount: cart.items.length,
-                    itemBuilder: (context, index) => CartItemTile(line: cart.items[index]),
+                    itemBuilder: (context, index) =>
+                        CartItemTile(line: cart.items[index]),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -114,7 +118,8 @@ class CartPage extends ConsumerWidget {
                           Text('Total', style: theme.textTheme.titleLarge),
                           Text(
                             '\$${cart.total.toStringAsFixed(0)}',
-                            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
@@ -124,12 +129,14 @@ class CartPage extends ConsumerWidget {
                             ? null
                             : () async {
                                 final messenger = ScaffoldMessenger.of(context);
-                                final wasSaved = await controller.saveCartToVenta();
+                                final wasSaved =
+                                    await controller.saveCartToVenta();
                                 final latestState = ref.read(cartProvider);
                                 if (wasSaved) {
                                   messenger.showSnackBar(
                                     const SnackBar(
-                                      content: Text('Nota de pedido generada correctamente.'),
+                                      content: Text(
+                                          'Nota de pedido generada correctamente.'),
                                       duration: Duration(seconds: 2),
                                     ),
                                   );
@@ -146,7 +153,8 @@ class CartPage extends ConsumerWidget {
                             ? const SizedBox(
                                 height: 20,
                                 width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Text('Proceder al pago'),
                       ),
