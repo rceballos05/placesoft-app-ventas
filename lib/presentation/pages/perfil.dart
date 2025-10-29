@@ -55,7 +55,8 @@ class _PerfilState extends ConsumerState<Perfil>
   @override
   Widget build(BuildContext context) {
     final themeModel = ThemeModel.maybeOf(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final loginState = ref.watch(loginControllerProvider);
     final currentUser = loginState.user;
     if (currentUser == null) {
@@ -63,36 +64,42 @@ class _PerfilState extends ConsumerState<Perfil>
           name: 'Perfil');
     }
 
-    return ThemeSwitchingArea(
-      child: FadeTransition(
-        opacity: _fade,
-        child: Scaffold(
-          backgroundColor: isDark ? Colors.black : const Color(0xFFF6F7FB),
-          body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildHeader(
-                    context,
-                    isDark: isDark,
-                    themeModel: themeModel,
-                  ),
-                  const SizedBox(height: 24),
-                  _buildUserCard(isDark: isDark, user: currentUser),
-                  const SizedBox(height: 24),
-                  _buildOptions(context),
-                  const SizedBox(height: 20),
-                  const Divider(),
-                  const SizedBox(height: 6),
-                  Text(
-                    'v1.0.3 — ${(currentUser?.prefijo ?? '—').toUpperCase()}',
-                    style: TextStyle(
-                      color: isDark ? Colors.white54 : Colors.black45,
-                      fontSize: 12,
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: ThemeSwitchingArea(
+        child: FadeTransition(
+          opacity: _fade,
+          child: Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor,
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildHeader(
+                      context,
+                      isDark: isDark,
+                      themeModel: themeModel,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    _buildUserCard(
+                      context,
+                      isDark: isDark,
+                      user: currentUser,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildOptions(context),
+                    const SizedBox(height: 20),
+                    Divider(color: theme.dividerColor.withOpacity(0.6)),
+                    const SizedBox(height: 6),
+                    Text(
+                      'v1.0.3 — ${(currentUser?.prefijo ?? '—').toUpperCase()}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -106,7 +113,9 @@ class _PerfilState extends ConsumerState<Perfil>
     required bool isDark,
     ThemeModel? themeModel,
   }) {
-    final titleColor = isDark ? Colors.white : Colors.black87;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final titleColor = colorScheme.onSurface;
 
     return Row(
       children: [
@@ -138,7 +147,9 @@ class _PerfilState extends ConsumerState<Perfil>
         ThemeSwitcher(
           builder: (context) {
             final isCurrentlyDark = Theme.of(context).brightness == Brightness.dark;
-            final iconColor = isCurrentlyDark ? Colors.amberAccent : Colors.indigo;
+            final iconColor = isCurrentlyDark
+                ? colorScheme.secondary
+                : colorScheme.primary;
 
             return IconButton(
               tooltip: isCurrentlyDark
@@ -158,10 +169,12 @@ class _PerfilState extends ConsumerState<Perfil>
                   opacity: animation,
                   child: ScaleTransition(scale: animation, child: child),
                 ),
-                child: Icon(
-                  isCurrentlyDark ? Icons.wb_sunny_rounded : Icons.nightlight_round,
+                child: Text(
+                  isCurrentlyDark ? '☀️' : '🌙',
                   key: ValueKey<bool>(isCurrentlyDark),
-                  color: iconColor,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: iconColor,
+                  ),
                 ),
               ),
             );
@@ -171,7 +184,13 @@ class _PerfilState extends ConsumerState<Perfil>
     );
   }
 
-  Widget _buildUserCard({required bool isDark, required User? user}) {
+  Widget _buildUserCard(
+    BuildContext context, {
+    required bool isDark,
+    required User? user,
+  }) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final isLoggedIn = user != null;
     final nombre = user?.nombre ?? 'Usuario';
     final rut = user?.rut ?? 'Sin sesión activa';
@@ -190,32 +209,48 @@ class _PerfilState extends ConsumerState<Perfil>
           name: 'Perfil');
     }
 
+    final gradientColors = isDark
+        ? [
+            colorScheme.primary.withOpacity(0.85),
+            colorScheme.surfaceVariant.withOpacity(0.9),
+          ]
+        : [
+            colorScheme.primaryContainer,
+            colorScheme.secondaryContainer,
+          ];
+
+    final cardTextColor = isDark ? Colors.white : Colors.black87;
+    final subtleTextColor = cardTextColor.withOpacity(0.7);
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: isDark
-              ? [Colors.deepPurple.shade900, Colors.black]
-              : [Colors.blue.shade300, Colors.deepPurple.shade200],
+          colors: gradientColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withOpacity(isDark ? 0.4 : 0.2),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
         ],
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.08)
+              : Colors.black.withOpacity(0.05),
+        ),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
           Stack(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 50,
-                backgroundImage: NetworkImage(
+                backgroundImage: const NetworkImage(
                   'https://e7.pngegg.com/pngimages/644/920/png-clipart-computer-icons-user-profile-avatar-avatar-white-heroes.png',
                 ),
               ),
@@ -225,13 +260,17 @@ class _PerfilState extends ConsumerState<Perfil>
                 child: Container(
                   height: 32,
                   width: 32,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? colorScheme.onPrimary.withOpacity(0.9)
+                        : Colors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     LineAwesomeIcons.pen,
-                    color: Colors.deepPurple,
+                    color: isDark
+                        ? colorScheme.primary
+                        : colorScheme.secondary,
                     size: 18,
                   ),
                 ),
@@ -244,14 +283,14 @@ class _PerfilState extends ConsumerState<Perfil>
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : Colors.black87,
+              color: cardTextColor,
             ),
           ),
           Text(
             rut,
             style: TextStyle(
               fontSize: 14,
-              color: isDark ? Colors.white70 : Colors.black54,
+              color: subtleTextColor,
             ),
           ),
           const SizedBox(height: 16),
@@ -264,19 +303,22 @@ class _PerfilState extends ConsumerState<Perfil>
                     _UserDataRow(
                       label: 'Caja asignada',
                       value: cajaAsignada,
-                      isDark: isDark,
+                      textColor: cardTextColor,
+                      subtleTextColor: subtleTextColor,
                     ),
                     const SizedBox(height: 8),
                     _UserDataRow(
                       label: 'Prefijo',
                       value: prefijo,
-                      isDark: isDark,
+                      textColor: cardTextColor,
+                      subtleTextColor: subtleTextColor,
                     ),
                     const SizedBox(height: 8),
                     _UserDataRow(
                       label: 'Descuento máximo',
                       value: maxDctoLabel,
-                      isDark: isDark,
+                      textColor: cardTextColor,
+                      subtleTextColor: subtleTextColor,
                     ),
                   ],
                 ),
@@ -290,7 +332,7 @@ class _PerfilState extends ConsumerState<Perfil>
                 'Inicia sesión nuevamente para ver los datos actualizados.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: isDark ? Colors.white70 : Colors.black54,
+                  color: subtleTextColor,
                   fontSize: 13,
                 ),
               ),
@@ -409,35 +451,40 @@ class _UserDataRow extends StatelessWidget {
   const _UserDataRow({
     required this.label,
     required this.value,
-    required this.isDark,
+    required this.textColor,
+    required this.subtleTextColor,
   });
 
   final String label;
   final String value;
-  final bool isDark;
+  final Color textColor;
+  final Color subtleTextColor;
 
   @override
   Widget build(BuildContext context) {
-    final color = isDark ? Colors.white70 : Colors.black54;
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: color,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: subtleTextColor,
             fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(
-            fontSize: 15,
-            color: isDark ? Colors.white : Colors.black87,
-            fontWeight: FontWeight.w600,
-          ),
+          style: theme.textTheme.titleMedium?.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w600,
+              ) ??
+              TextStyle(
+                fontSize: 15,
+                color: textColor,
+                fontWeight: FontWeight.w600,
+              ),
         ),
       ],
     );
