@@ -28,7 +28,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _passwordFocusNode = FocusNode();
   bool _showRutKeyboard = false;
   bool _rememberMe = false;
-  bool _downloadAfterLogin = true;
+  bool _downloadAfterLogin = false;
   bool _syncAfterLogin = false;
   bool _postLoginFlowRunning = false;
   bool _suppressDownloadAlerts = false;
@@ -192,8 +192,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               const Divider(height: 32),
                               AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 250),
-                                transitionBuilder:
-                                    (Widget child, Animation<double> animation) {
+                                transitionBuilder: (Widget child,
+                                    Animation<double> animation) {
                                   return SizeTransition(
                                     sizeFactor: animation,
                                     axisAlignment: -1,
@@ -278,7 +278,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     FocusScope.of(context).requestFocus(focusNode);
     final controller = _controllerForFocus(focusNode);
     if (controller != null) {
-      controller.selection = TextSelection.collapsed(offset: controller.text.length);
+      controller.selection =
+          TextSelection.collapsed(offset: controller.text.length);
     }
   }
 
@@ -352,15 +353,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       return;
     }
 
-    final caretIndex = selection.isValid ? selection.start : oldValue.text.length;
+    final caretIndex =
+        selection.isValid ? selection.start : oldValue.text.length;
     if (caretIndex == 0) {
       return;
     }
     _replaceRange(controller, caretIndex - 1, caretIndex, '');
   }
 
-  void _replaceRange(
-      TextEditingController controller, int start, int end, String replacement) {
+  void _replaceRange(TextEditingController controller, int start, int end,
+      String replacement) {
     final oldValue = controller.value;
     final newText = oldValue.text.replaceRange(start, end, replacement);
     var newValue = TextEditingValue(
