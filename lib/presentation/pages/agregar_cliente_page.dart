@@ -1,394 +1,553 @@
+import 'dart:developer' as developer;
+
 import 'package:animated_theme_switcher/animated_theme_switcher.dart';
+import 'package:aplicacion_ventas/db/db_clientes.dart';
+import 'package:aplicacion_ventas/db/db_destinos.dart';
+import 'package:aplicacion_ventas/db/track_db.dart';
+import 'package:aplicacion_ventas/models/mae_cliente.dart';
+import 'package:aplicacion_ventas/models/mae_cliente_destino.dart';
+import 'package:aplicacion_ventas/models/nuevo_cliente.dart';
+import 'package:aplicacion_ventas/models/track.dart';
+import 'package:aplicacion_ventas/statics/globals.dart' as globals;
+import 'package:aplicacion_ventas/statics/statics.dart';
+import 'package:aplicacion_ventas/utils/rut_utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 
-// 🔁 Refactor: manejo de estado con Riverpod
-final agregarClienteControllerProvider =
-    StateNotifierProvider.autoDispose<AgregarClienteController, AgregarClienteState>((ref) {
-  return AgregarClienteController();
-});
-
-/// Estados posibles del formulario de registro.
-enum ClienteFormStatus { idle, submitting, success, failure }
-
-/// Modelo con los datos del formulario para agregar un cliente.
-class ClienteFormData {
-  const ClienteFormData({
-    required this.fullName,
-    required this.phone,
-    required this.email,
-    required this.address,
-    this.notes = '',
-  });
-
-  final String fullName;
-  final String phone;
-  final String email;
-  final String address;
-  final String notes;
-
-  Map<String, String> toMap() {
-    return <String, String>{
-      'fullName': fullName,
-      'phone': phone,
-      'email': email,
-      'address': address,
-      'notes': notes,
-    };
-  }
-}
-
-/// Estado del formulario de agregar cliente.
-class AgregarClienteState {
-  const AgregarClienteState({
-    this.status = ClienteFormStatus.idle,
-    this.errorMessage,
-    this.successMessage,
-    this.lastSubmittedData,
-  });
-
-  final ClienteFormStatus status;
-  final String? errorMessage;
-  final String? successMessage;
-  final ClienteFormData? lastSubmittedData;
-
-  bool get isLoading => status == ClienteFormStatus.submitting;
-
-  AgregarClienteState copyWith({
-    ClienteFormStatus? status,
-    String? errorMessage,
-    String? successMessage,
-    ClienteFormData? lastSubmittedData,
-    bool resetMessages = false,
-  }) {
-    return AgregarClienteState(
-      status: status ?? this.status,
-      errorMessage: resetMessages ? null : (errorMessage ?? this.errorMessage),
-      successMessage: resetMessages ? null : (successMessage ?? this.successMessage),
-      lastSubmittedData: lastSubmittedData ?? this.lastSubmittedData,
-    );
-  }
-}
-
-/// Notifier encargado de coordinar el guardado del cliente.
-class AgregarClienteController extends StateNotifier<AgregarClienteState> {
-  AgregarClienteController() : super(const AgregarClienteState());
-
-  Future<void> submit(ClienteFormData data) async {
-    state = state.copyWith(status: ClienteFormStatus.submitting, resetMessages: true);
-
-    try {
-      // 🔁 Refactor: simulación de envío de datos aislada en el notifier
-      await Future<void>.delayed(const Duration(milliseconds: 800));
-
-      state = state.copyWith(
-        status: ClienteFormStatus.success,
-        successMessage: 'Cliente "${data.fullName}" registrado correctamente.',
-        lastSubmittedData: data,
-      );
-    } catch (error) {
-      state = state.copyWith(
-        status: ClienteFormStatus.failure,
-        errorMessage: 'Ocurrió un error inesperado al guardar el cliente.',
-      );
-    }
-  }
-
-  void resetStatus() {
-    state = state.copyWith(status: ClienteFormStatus.idle, resetMessages: true);
-  }
-}
-
-/// Formulario para agregar un nuevo cliente a la cartera del vendedor.
-class AgregarClientePage extends ConsumerStatefulWidget {
+class AgregarClientePage extends StatefulWidget {
   const AgregarClientePage({super.key});
 
-  static const routeName = '/agregar-cliente';
-
   @override
-  ConsumerState<AgregarClientePage> createState() => _AgregarClientePageState();
+  State<AgregarClientePage> createState() => _AgregarClientePageState();
 }
 
-class _AgregarClientePageState extends ConsumerState<AgregarClientePage> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameController;
-  late final TextEditingController _phoneController;
-  late final TextEditingController _emailController;
-  late final TextEditingController _addressController;
-  late final TextEditingController _notesController;
-
-  late final FocusNode _nameFocusNode;
-  late final FocusNode _phoneFocusNode;
-  late final FocusNode _emailFocusNode;
-  late final FocusNode _addressFocusNode;
-  late final FocusNode _notesFocusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController();
-    _phoneController = TextEditingController();
-    _emailController = TextEditingController();
-    _addressController = TextEditingController();
-    _notesController = TextEditingController();
-
-    _nameFocusNode = FocusNode();
-    _phoneFocusNode = FocusNode();
-    _emailFocusNode = FocusNode();
-    _addressFocusNode = FocusNode();
-    _notesFocusNode = FocusNode();
-  }
+class _AgregarClientePageState extends State<AgregarClientePage> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _rutController = TextEditingController();
+  final TextEditingController _nombreController = TextEditingController();
+  final TextEditingController _direccionController = TextEditingController();
+  final TextEditingController _comunaController = TextEditingController();
+  final TextEditingController _ciudadController = TextEditingController();
+  final TextEditingController _sectorController = TextEditingController();
+  final TextEditingController _fonoController = TextEditingController();
+  final TextEditingController _celularController = TextEditingController();
+  final TextEditingController _giroController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _contactoController = TextEditingController();
+  bool _esInstitucionPublica = false;
+  bool _isSaving = false;
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _phoneController.dispose();
+    _rutController.dispose();
+    _nombreController.dispose();
+    _direccionController.dispose();
+    _comunaController.dispose();
+    _ciudadController.dispose();
+    _sectorController.dispose();
+    _fonoController.dispose();
+    _celularController.dispose();
+    _giroController.dispose();
     _emailController.dispose();
-    _addressController.dispose();
-    _notesController.dispose();
-
-    _nameFocusNode.dispose();
-    _phoneFocusNode.dispose();
-    _emailFocusNode.dispose();
-    _addressFocusNode.dispose();
-    _notesFocusNode.dispose();
+    _contactoController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(agregarClienteControllerProvider);
+    ScreenUtil.init(
+      context,
+      designSize: const Size(414, 896),
+      minTextAdapt: true,
+    );
 
-    ref.listen<AgregarClienteState>(agregarClienteControllerProvider, (previous, next) {
-      if (next.status == ClienteFormStatus.success && next.successMessage != null) {
-        _formKey.currentState?.reset();
-        _clearControllers();
-        _showSnackBar(context, next.successMessage!, isError: false);
-        ref.read(agregarClienteControllerProvider.notifier).resetStatus();
-      } else if (next.status == ClienteFormStatus.failure && next.errorMessage != null) {
-        _showSnackBar(context, next.errorMessage!, isError: true);
-        ref.read(agregarClienteControllerProvider.notifier).resetStatus();
-      }
-    });
+    final header = Row(
+      children: <Widget>[
+        SizedBox(width: kSpacingUnit.w * 8),
+        Center(
+          child: Text(
+            'Agregar Cliente',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+        ),
+      ],
+    );
 
-    final theme = Theme.of(context);
+    final bottomNav = BottomAppBar(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            SizedBox(height: kSpacingUnit.h * 1),
+            Expanded(
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4C53A5),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: InkWell(
+                  child: Text(
+                    _isSaving ? 'Guardando...' : 'Agregar Cliente',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  onTap: _isSaving ? null : _onSubmit,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
 
     return ThemeSwitchingArea(
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Agregar cliente'),
+          title: header,
         ),
-        body: SafeArea(
-          child: GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Form(
+        body: SingleChildScrollView(
+          child: Column(
+            children: <Widget>[
+              SizedBox(height: kSpacingUnit.h * 2),
+              Form(
                 key: _formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Formulario de registro de clientes',
-                      style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Completa los datos básicos del cliente y su información de contacto.',
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildNameField(),
-                    const SizedBox(height: 16),
-                    _buildPhoneField(),
-                    const SizedBox(height: 16),
-                    _buildEmailField(),
-                    const SizedBox(height: 16),
-                    _buildAddressField(),
-                    const SizedBox(height: 16),
-                    _buildNotesField(),
-                    const SizedBox(height: 32),
-                    _buildSubmitButton(state),
-                  ],
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: kSpacingUnit.w * 4),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: _rutController,
+                        decoration: const InputDecoration(
+                          labelText: 'Rut',
+                          hintText: 'Ingrese su Rut',
+                          prefixIcon: Icon(Icons.key),
+                          border: OutlineInputBorder(),
+                        ),
+                        inputFormatters: <TextInputFormatter>[RutInputFormatter()],
+                        validator: (value) {
+                          final text = value?.trim() ?? '';
+                          if (text.isEmpty) {
+                            return 'El campo rut no puede estar vacío';
+                          }
+                          if (!RutUtils.isValid(text)) {
+                            return 'RUT no válido';
+                          }
+                          return null;
+                        },
+                      ),
+                      _gap(),
+                      TextFormField(
+                        controller: _nombreController,
+                        decoration: const InputDecoration(
+                          labelText: 'Nombre',
+                          hintText: 'Ingrese su Nombre',
+                          prefixIcon: Icon(LineAwesomeIcons.identification_badge),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El campo Nombre no puede estar vacío';
+                          }
+                          return null;
+                        },
+                      ),
+                      _gap(),
+                      TextFormField(
+                        controller: _emailController,
+                        decoration: const InputDecoration(
+                          labelText: 'Correo',
+                          hintText: 'Ingrese su Correo',
+                          prefixIcon: Icon(LineAwesomeIcons.at),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El campo Correo no puede estar vacío';
+                          }
+                          return null;
+                        },
+                      ),
+                      _gap(),
+                      TextFormField(
+                        controller: _direccionController,
+                        decoration: const InputDecoration(
+                          labelText: 'Direccion',
+                          hintText: 'Ingrese su direccion',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El campo direccion no puede estar vacío';
+                          }
+                          return null;
+                        },
+                      ),
+                      _gap(),
+                      TextFormField(
+                        controller: _comunaController,
+                        decoration: const InputDecoration(
+                          labelText: 'Comuna',
+                          hintText: 'Ingrese su Comuna',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El campo comuna no puede estar vacío';
+                          }
+                          return null;
+                        },
+                      ),
+                      _gap(),
+                      TextFormField(
+                        controller: _ciudadController,
+                        decoration: const InputDecoration(
+                          labelText: 'Ciudad',
+                          hintText: 'Ingrese su ciudad',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El campo ciudad no puede estar vacío';
+                          }
+                          return null;
+                        },
+                      ),
+                      _gap(),
+                      TextFormField(
+                        controller: _sectorController,
+                        decoration: const InputDecoration(
+                          labelText: 'Sector',
+                          hintText: 'Ingrese su Sector',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El campo sector no puede estar vacío';
+                          }
+                          return null;
+                        },
+                      ),
+                      _gap(),
+                      TextFormField(
+                        controller: _giroController,
+                        decoration: const InputDecoration(
+                          labelText: 'Giro',
+                          hintText: 'Ingrese el giro',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El campo giro no puede estar vacío';
+                          }
+                          return null;
+                        },
+                      ),
+                      _gap(),
+                      TextFormField(
+                        controller: _fonoController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Fono',
+                          hintText: 'Ingrese su Fono',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El campo Fono no puede estar vacío';
+                          }
+                          return null;
+                        },
+                      ),
+                      _gap(),
+                      TextFormField(
+                        controller: _celularController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Celular',
+                          hintText: 'Ingrese su Celular',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El campo celular no puede estar vacío';
+                          }
+                          return null;
+                        },
+                      ),
+                      _gap(),
+                      TextFormField(
+                        controller: _contactoController,
+                        decoration: const InputDecoration(
+                          labelText: 'Contacto',
+                          hintText: 'Ingrese el Contacto',
+                          prefixIcon: Icon(Icons.person),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'El campo Contacto no puede estar vacío';
+                          }
+                          return null;
+                        },
+                      ),
+                      CheckboxListTile(
+                        checkColor: kAccentColor,
+                        title: const Text('Es institucion pública'),
+                        value: _esInstitucionPublica,
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() => _esInstitucionPublica = value);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+              SizedBox(height: kSpacingUnit.h * 3),
+            ],
           ),
         ),
+        bottomNavigationBar: bottomNav,
       ),
     );
   }
 
-  TextFormField _buildNameField() {
-    return TextFormField(
-      controller: _nameController,
-      focusNode: _nameFocusNode,
-      textInputAction: TextInputAction.next,
-      decoration: const InputDecoration(
-        labelText: 'Nombre completo',
-        hintText: 'Ej. Juan Pérez',
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Ingresa el nombre del cliente';
-        }
-        if (value.trim().length < 3) {
-          return 'El nombre debe tener al menos 3 caracteres';
-        }
-        return null;
-      },
-      onFieldSubmitted: (_) => _requestFocus(_phoneFocusNode),
-    );
-  }
-
-  TextFormField _buildPhoneField() {
-    return TextFormField(
-      controller: _phoneController,
-      focusNode: _phoneFocusNode,
-      textInputAction: TextInputAction.next,
-      keyboardType: TextInputType.phone,
-      decoration: const InputDecoration(
-        labelText: 'Teléfono de contacto',
-        hintText: '+56 9 1234 5678',
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Ingresa el teléfono del cliente';
-        }
-        final digitsOnly = value.replaceAll(RegExp('[^0-9+]'), '');
-        if (digitsOnly.length < 8) {
-          return 'Ingresa un número de teléfono válido';
-        }
-        return null;
-      },
-      onFieldSubmitted: (_) => _requestFocus(_emailFocusNode),
-    );
-  }
-
-  TextFormField _buildEmailField() {
-    return TextFormField(
-      controller: _emailController,
-      focusNode: _emailFocusNode,
-      textInputAction: TextInputAction.next,
-      keyboardType: TextInputType.emailAddress,
-      decoration: const InputDecoration(
-        labelText: 'Correo electrónico',
-        hintText: 'correo@empresa.cl',
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Ingresa el correo del cliente';
-        }
-        final trimmed = value.trim();
-        if (!trimmed.contains('@') || !trimmed.contains('.')) {
-          return 'Ingresa un correo electrónico válido';
-        }
-        return null;
-      },
-      onFieldSubmitted: (_) => _requestFocus(_addressFocusNode),
-    );
-  }
-
-  TextFormField _buildAddressField() {
-    return TextFormField(
-      controller: _addressController,
-      focusNode: _addressFocusNode,
-      textInputAction: TextInputAction.next,
-      decoration: const InputDecoration(
-        labelText: 'Dirección',
-        hintText: 'Calle, número y ciudad',
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Ingresa la dirección del cliente';
-        }
-        return null;
-      },
-      onFieldSubmitted: (_) => _requestFocus(_notesFocusNode),
-    );
-  }
-
-  TextFormField _buildNotesField() {
-    return TextFormField(
-      controller: _notesController,
-      focusNode: _notesFocusNode,
-      textInputAction: TextInputAction.done,
-      decoration: const InputDecoration(
-        labelText: 'Notas u observaciones',
-        hintText: 'Información adicional del cliente (opcional)',
-      ),
-      maxLines: 3,
-      onFieldSubmitted: (_) => _submitForm(),
-    );
-  }
-
-  Widget _buildSubmitButton(AgregarClienteState state) {
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        onPressed: state.isLoading ? null : _submitForm,
-        icon: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 250),
-          child: state.isLoading
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.person_add_alt_1_rounded),
-        ),
-        label: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(state.isLoading ? 'Guardando...' : 'Registrar cliente'),
-        ),
-      ),
-    );
-  }
-
-  void _submitForm() {
+  Future<void> _onSubmit() async {
     FocusScope.of(context).unfocus();
-    final form = _formKey.currentState;
-    if (form == null) {
-      return;
-    }
-    if (!form.validate()) {
+    if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
 
-    final formData = ClienteFormData(
-      fullName: _nameController.text.trim(),
-      phone: _phoneController.text.trim(),
-      email: _emailController.text.trim(),
-      address: _addressController.text.trim(),
-      notes: _notesController.text.trim(),
+    final user = globals.user;
+    if (user == null) {
+      _mostrarAlertaError(context, 'No se encontró información del vendedor. Inicia sesión nuevamente.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    final rut = RutUtils.toDatabaseFormat(_rutController.text);
+    final nuevoCliente = NuevoCliente(
+      rut: rut.padLeft(10, '0'),
+      nombre: _nombreController.text.toUpperCase(),
+      direccion: _direccionController.text.toUpperCase(),
+      comuna: _comunaController.text.toUpperCase(),
+      ciudad: _ciudadController.text.toUpperCase(),
+      sector: _sectorController.text.toUpperCase(),
+      fono1: _fonoController.text.toUpperCase(),
+      celular: _celularController.text.toUpperCase(),
+      giro: _giroController.text.toUpperCase(),
+      email: _emailController.text.toUpperCase(),
+      contacto: _contactoController.text.toUpperCase(),
+      institucionPublica: _esInstitucionPublica ? 1 : 0,
+      vendedor: user.rut,
     );
 
-    ref.read(agregarClienteControllerProvider.notifier).submit(formData);
+    final guardado = await _guardarCliente(nuevoCliente);
+    if (!mounted) return;
+
+    setState(() => _isSaving = false);
+
+    if (guardado) {
+      _limpiarFormulario();
+      _mostrarAlertaOk(context, 'Cliente guardado correctamente.');
+    }
   }
 
-  void _requestFocus(FocusNode node) {
-    FocusScope.of(context).requestFocus(node);
-  }
+  Future<bool> _guardarCliente(NuevoCliente nuevoCliente) async {
+    try {
+      final codComuna = await _obtenerCodigoComuna(nuevoCliente.comuna);
+      final ahora = DateTime.now();
+      final fecha = _formatearFecha(ahora);
+      final hora = _formatearHora(ahora);
 
-  void _clearControllers() {
-    _nameController.clear();
-    _phoneController.clear();
-    _emailController.clear();
-    _addressController.clear();
-    _notesController.clear();
-  }
-
-  void _showSnackBar(BuildContext context, String message, {required bool isError}) {
-    final messenger = ScaffoldMessenger.of(context);
-    messenger
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: isError ? Colors.redAccent : Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
+      // Guarda localmente
+      final maeCliente = MaeCliente(
+        rut: nuevoCliente.rut,
+        nombre: nuevoCliente.nombre,
+        direccion: nuevoCliente.direccion,
+        codComuna: codComuna,
+        comuna: nuevoCliente.comuna,
+        ciudad: nuevoCliente.ciudad,
+        sector: nuevoCliente.sector,
+        fono1: nuevoCliente.fono1,
+        fono2: '1',
+        fax: '1',
+        celular: nuevoCliente.celular,
+        giro: nuevoCliente.giro,
+        email: nuevoCliente.email,
+        diasCredito: 30,
+        contacto: nuevoCliente.contacto,
+        contactoMail: nuevoCliente.email,
+        contactoFono: nuevoCliente.celular,
+        descuento: 0.0,
+        bloqueo: '',
+        bloqueoFacturas: '',
+        tipoCliente: '01',
+        plazo: '',
+        cupo: 0.0,
+        disponible: 1.0,
+        vendedor: nuevoCliente.vendedor,
+        canalCliente: '01',
+        fechaUltimaModificacion: '',
+        localCreacion: '00',
+        fechaIngreso: fecha,
+        activo: 1,
+        codPrecio: '01',
+        precioMenor: 0.0,
+        webPassword: '',
+        codigoListaPrecios: '',
+        tarjetaCupo: 0.0,
+        tarjetaDiaPago: 0.0,
+        terceraEdad: 0,
+        dctoSeccion: '',
+        dctoDepto: '',
+        esInstitucionPublica: nuevoCliente.institucionPublica,
       );
+      await DBClientes.insert(maeCliente);
+
+      final destino = MaeClienteDestino(
+        codigo: '00',
+        cliente: nuevoCliente.rut,
+        descripcion: nuevoCliente.direccion,
+        codComuna: codComuna,
+        vigente: 1,
+        nombreContacto: nuevoCliente.nombre,
+        fonoContacto: nuevoCliente.celular,
+        emailContacto: nuevoCliente.email,
+      );
+      await DBDestinos.insert(destino);
+
+      // Envía al track
+      final queryCliente =
+          'INSERT INTO mae_clientes (rut,nombre,direccion,cod_comuna,comuna,ciudad,fono1,fax,celular,email,canalcliente,vendedor,tipocliente,giro,cupo,localcreacion,fechaingreso) '
+          'VALUES (~${nuevoCliente.rut}~,~${nuevoCliente.nombre}~,~${nuevoCliente.direccion}~,~$codComuna~,~${nuevoCliente.comuna}~,~${nuevoCliente.ciudad}~,~${nuevoCliente.fono1}~,~1~,~${nuevoCliente.celular}~,~${nuevoCliente.email}~,~02~,~${nuevoCliente.vendedor}~,~01~,~${nuevoCliente.giro}~,~0~,~00~,~$fecha~) '
+          'ON DUPLICATE KEY UPDATE rut = rut';
+
+      final trackCliente = TrackDto(
+        server: '45.236.164.172',
+        basedatos: 'places_crvictoria_mantencion',
+        fechaCreacion: fecha,
+        horaCreacion: hora,
+        prioridad: '',
+        queryStr: queryCliente,
+        caja: globals.user?.caja ?? '',
+      );
+      await DBTrack.insert(trackCliente);
+
+      final queryDestino =
+          'INSERT INTO mae_clientes_destinos (cliente,codigo,descripcion,vigente,cod_comuna) '
+          'VALUES (~${nuevoCliente.rut}~,~000~,~${nuevoCliente.direccion}~,~1~,~$codComuna~) '
+          'ON DUPLICATE KEY UPDATE cliente = cliente';
+
+      final trackDestino = TrackDto(
+        server: '45.236.164.172',
+        basedatos: 'places_crvictoria_mantencion',
+        fechaCreacion: fecha,
+        horaCreacion: hora,
+        prioridad: '',
+        queryStr: queryDestino,
+        caja: globals.user?.caja ?? '',
+      );
+      await DBTrack.insert(trackDestino);
+
+      return true;
+    } catch (error, stackTrace) {
+      developer.log('Error al guardar cliente', error: error, stackTrace: stackTrace, name: 'AgregarClientePage');
+      if (mounted) {
+        _mostrarAlertaError(
+          context,
+          'Ocurrió un problema al guardar el cliente. Intenta nuevamente.',
+        );
+      }
+      return false;
+    }
   }
+
+  Future<String> _obtenerCodigoComuna(String comuna) async {
+    if (comuna.isEmpty) {
+      return '000';
+    }
+    final sanitized = comuna.replaceAll(RegExp(r'[^0-9A-Za-z]'), '').toUpperCase();
+    return sanitized.isEmpty
+        ? '000'
+        : sanitized.substring(0, sanitized.length >= 3 ? 3 : sanitized.length).padLeft(3, '0');
+  }
+
+  void _limpiarFormulario() {
+    _rutController.clear();
+    _nombreController.clear();
+    _direccionController.clear();
+    _comunaController.clear();
+    _ciudadController.clear();
+    _sectorController.clear();
+    _fonoController.clear();
+    _celularController.clear();
+    _giroController.clear();
+    _emailController.clear();
+    _contactoController.clear();
+    setState(() => _esInstitucionPublica = false);
+  }
+
+  String _formatearFecha(DateTime dateTime) =>
+      '${dateTime.year.toString().padLeft(4, '0')}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
+
+  String _formatearHora(DateTime dateTime) =>
+      '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
+}
+
+Widget _gap() => const SizedBox(height: 16);
+
+void _mostrarAlertaOk(BuildContext context, String text) {
+  showDialog(
+    barrierDismissible: false,
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text('Success'),
+      content: Text(text),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text('Ok'),
+        )
+      ],
+    ),
+  );
+}
+
+void _mostrarAlertaError(BuildContext context, String text) {
+  showDialog(
+    barrierDismissible: false,
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text('Error'),
+      content: Text(text),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: const Text('Ok'),
+        )
+      ],
+    ),
+  );
 }
