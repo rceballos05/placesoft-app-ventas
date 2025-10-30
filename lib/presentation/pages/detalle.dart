@@ -9,7 +9,7 @@ import 'package:aplicacion_ventas/db/productos.dart';
 import 'package:aplicacion_ventas/models/producto.dart';
 import 'package:aplicacion_ventas/models/rollo_terreno.dart';
 import 'package:aplicacion_ventas/presentation/pages/cart_page.dart';
-import 'package:aplicacion_ventas/presentation/widgets/busqueda_producto.dart';
+import 'package:aplicacion_ventas/presentation/widgets/buscar_producto.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -117,7 +117,8 @@ class _DetalleState extends ConsumerState<Detalle> {
         throw Exception('Producto no encontrado');
       }
 
-      final productoMae = MaeArticulos.fromMap(productRows.first);
+      final rawProduct = productRows.first;
+      final productoMae = MaeArticulos.fromMap(rawProduct);
       final priceData = await DBPrecios.get(
         code,
         database: database,
@@ -125,15 +126,15 @@ class _DetalleState extends ConsumerState<Detalle> {
 
       final descripcion = (productoMae.descripcion ?? '').trim();
       final descuentoPermitido = productoMae.descuento ?? 0;
-      final precio = priceData.precioVenta.toInt();
+      final codInterno = rawProduct['cod_interno']?.toString();
 
       final detalle = _ProductDetail(
         producto: Producto(
           codigobarra: code,
           descripcion:
               descripcion.isEmpty ? 'Producto sin nombre' : descripcion,
-          precio: precio,
-          descuento: descuentoPermitido.toInt(),
+          codInterno: codInterno,
+          precioVenta: priceData.precioVenta,
         ),
         imageUrl: 'https://picsum.photos/seed/$code/600/600',
         maxDiscount: descuentoPermitido.toDouble(),
