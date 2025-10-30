@@ -1,16 +1,38 @@
-import 'package:aplicacion_ventas/providers/cart_provider.dart';
+import 'package:aplicacion_ventas/models/cliente.dart';
+import 'package:aplicacion_ventas/presentation/widgets/busqueda_cliente.dart';
 import 'package:aplicacion_ventas/presentation/widgets/cart_item_tile.dart';
+import 'package:aplicacion_ventas/providers/cart_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Cart page that displays selected products with responsive layout adjustments.
-class CartPage extends ConsumerWidget {
+class CartPage extends ConsumerStatefulWidget {
   const CartPage({super.key});
 
   static const routeName = '/cart';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CartPage> createState() => _CartPageState();
+}
+
+class _CartPageState extends ConsumerState<CartPage> {
+  Cliente? clienteSeleccionado;
+
+  Future<void> _mostrarSelectorCliente(BuildContext context) async {
+    final cliente = await showSearch<Cliente?>(
+      context: context,
+      delegate: BuscarCliente(),
+    );
+    if (cliente != null) {
+      setState(() => clienteSeleccionado = cliente);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cliente asignado: ${cliente.nombre}')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider);
     final controller = ref.read(cartProvider.notifier);
     final theme = Theme.of(context);
@@ -69,6 +91,26 @@ class CartPage extends ConsumerWidget {
             padding: padding.copyWith(top: 24, bottom: 24),
             child: Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Material(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    child: ListTile(
+                      leading: const Icon(Icons.person),
+                      title: Text(
+                        clienteSeleccionado?.nombre ?? 'Sin cliente asignado',
+                      ),
+                      subtitle: clienteSeleccionado != null
+                          ? Text(clienteSeleccionado!.rut)
+                          : const Text('Seleccione un cliente para continuar'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.search),
+                        onPressed: () => _mostrarSelectorCliente(context),
+                      ),
+                    ),
+                  ),
+                ),
                 if (cart.errorMessage != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -128,6 +170,19 @@ class CartPage extends ConsumerWidget {
                         onPressed: cart.isSaving
                             ? null
                             : () async {
+                                if (clienteSeleccionado == null) {
+                                  await _mostrarSelectorCliente(context);
+                                  if (clienteSeleccionado == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Debe seleccionar un cliente antes de crear la nota.'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                }
+
                                 final messenger = ScaffoldMessenger.of(context);
                                 final wasSaved =
                                     await controller.saveCartToVenta();

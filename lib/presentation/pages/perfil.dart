@@ -1,9 +1,9 @@
 import 'dart:developer' as developer;
-import 'dart:io';
 
 import 'package:animated_theme_switcher/animated_theme_switcher.dart'
     hide ThemeModel;
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
+import 'package:aplicacion_ventas/application/services/sync_service.dart';
 import 'package:aplicacion_ventas/core/theme/app_theme.dart';
 import 'package:aplicacion_ventas/core/theme/theme_model.dart';
 import 'package:aplicacion_ventas/domain/entities/user.dart';
@@ -16,12 +16,11 @@ import 'package:aplicacion_ventas/presentation/pages/modificar_datos_page.dart';
 import 'package:aplicacion_ventas/presentation/widgets/busqueda_cliente.dart';
 import 'package:aplicacion_ventas/presentation/widgets/profile_list_item.dart';
 import 'package:aplicacion_ventas/statics/globals.dart';
+import 'package:aplicacion_ventas/core/utils/failure.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 
 /// Pantalla de perfil del usuario con accesos directos a distintas gestiones.
 class Perfil extends ConsumerStatefulWidget {
@@ -40,7 +39,10 @@ class _PerfilState extends ConsumerState<Perfil>
   late final AnimationController _controller;
   late final Animation<double> _fade;
   bool _isDownloading = false;
-  String? _currentDownloadType;
+  bool _isCheckingStatus = false;
+  double _downloadProgress = 0;
+  InitialDownloadStep? _currentDownloadStep;
+  InitialSyncStatus? _initialSyncStatus;
 
   @override
   void initState() {
@@ -51,6 +53,7 @@ class _PerfilState extends ConsumerState<Perfil>
     );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     _controller.forward();
+    _refreshInitialSyncStatus();
   }
 
   @override
@@ -303,7 +306,8 @@ class _PerfilState extends ConsumerState<Perfil>
                   ),
                   child: Icon(
                     LineAwesomeIcons.pen,
-                    color: isDark ? colorScheme.primary : colorScheme.secondary,
+                    color:
+                        isDark ? colorScheme.primary : colorScheme.secondary,
                     size: 18,
                   ),
                 ),
@@ -391,29 +395,52 @@ class _PerfilState extends ConsumerState<Perfil>
                   'Respaldos manuales',
                   style: theme.textTheme.titleMedium,
                 ),
+                const SizedBox(height: 8),
+                if (_isCheckingStatus)
+                  const Center(
+                    child: SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                  )
+                else
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _buildSyncStatusMessage(),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
                   icon: const Icon(LineAwesomeIcons.download),
                   label: const Text('Descargar clientes'),
-                  onPressed: _isDownloading
-                      ? null
-                      : () => _downloadDatabase('clientes'),
+                  onPressed: _isDownloading ? null : _downloadInitialData,
                 ),
                 const SizedBox(height: 12),
                 ElevatedButton.icon(
                   icon: const Icon(LineAwesomeIcons.download),
                   label: const Text('Descargar productos'),
-                  onPressed: _isDownloading
-                      ? null
-                      : () => _downloadDatabase('productos'),
+                  onPressed: _isDownloading ? null : _downloadInitialData,
                 ),
                 if (_isDownloading) ...[
                   const SizedBox(height: 16),
-                  const Center(child: CircularProgressIndicator()),
-                  if (_currentDownloadType != null) ...[
+                  Center(
+                    child: SizedBox(
+                      height: 32,
+                      width: 32,
+                      child: CircularProgressIndicator(
+                        value: _downloadProgress > 0
+                            ? _downloadProgress.clamp(0, 1)
+                            : null,
+                      ),
+                    ),
+                  ),
+                  if (_currentDownloadStep != null) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'Descargando ${_currentDownloadType!}...',
+                      _mapDownloadStepToMessage(_currentDownloadStep!),
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall,
                     ),
@@ -469,66 +496,118 @@ class _PerfilState extends ConsumerState<Perfil>
     );
   }
 
-  Future<void> _downloadDatabase(String type) async {
-    final isClientes = type == 'clientes';
-    final endpoint = isClientes ? 'export-clientes' : 'export/productos';
-    final fileName = isClientes ? 'clientes.db' : 'productos.db';
-    final descripcion = isClientes ? 'clientes' : 'productos';
-
+  Future<void> _refreshInitialSyncStatus() async {
+    if (!mounted) {
+      return;
+    }
     setState(() {
-      _isDownloading = true;
-      _currentDownloadType = descripcion;
+      _isCheckingStatus = true;
     });
 
     try {
-      final prefijo =
-          ref.read(loginControllerProvider).user?.prefijo ?? 'placesoft';
-      final uri = Uri.parse(
-        'http://192.168.1.2:80/api/Sincronizacion/$endpoint/$prefijo',
-      );
-      final response = await http.get(uri);
-
-      if (response.statusCode != 200) {
-        throw HttpException(
-            'Error ${response.statusCode} al descargar $descripcion');
-      }
-
-      final directory = await getApplicationDocumentsDirectory();
-      final appDbPath = '${directory.path}${Platform.pathSeparator}AppDB';
-      final appDbDirectory = Directory(appDbPath);
-      if (!await appDbDirectory.exists()) {
-        await appDbDirectory.create(recursive: true);
-      }
-
-      final file =
-          File('${appDbDirectory.path}${Platform.pathSeparator}$fileName');
-      await file.writeAsBytes(response.bodyBytes, flush: true);
-
+      final status =
+          await ref.read(syncServiceProvider).getInitialDownloadStatus();
+      if (!mounted) return;
+      setState(() {
+        _initialSyncStatus = status;
+      });
+    } on Failure catch (failure) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(
-            content: Text(
-              'Base de datos de $descripcion descargada correctamente.',
-            ),
-          ),
+          SnackBar(content: Text(failure.message)),
         );
-    } catch (e) {
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isCheckingStatus = false;
+      });
+    }
+  }
+
+  Future<void> _downloadInitialData() async {
+    setState(() {
+      _isDownloading = true;
+      _downloadProgress = 0;
+      _currentDownloadStep = null;
+    });
+
+    try {
+      final didDownload = await ref
+          .read(syncServiceProvider)
+          .ensureInitialDataAvailable(
+        onProgress: (progress) {
+          if (!mounted) return;
+          setState(() {
+            _downloadProgress = progress.progress;
+            _currentDownloadStep = progress.step;
+          });
+        },
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _downloadProgress = 1;
+        _currentDownloadStep = InitialDownloadStep.completado;
+      });
+
+      if (didDownload) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Bases locales descargadas correctamente'),
+            ),
+          );
+      }
+
+      await _refreshInitialSyncStatus();
+    } on Failure catch (failure) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(
-            content: Text('Error al descargar $descripcion: $e'),
-          ),
+          SnackBar(content: Text(failure.message)),
         );
     } finally {
       if (!mounted) return;
       setState(() {
         _isDownloading = false;
-        _currentDownloadType = null;
+        _downloadProgress = 0;
+        _currentDownloadStep = null;
       });
+    }
+  }
+
+  String _buildSyncStatusMessage() {
+    final status = _initialSyncStatus;
+    if (status == null) {
+      return 'Estado de bases locales no disponible';
+    }
+    if (status.alreadySynchronized) {
+      return 'Bases locales disponibles ✅';
+    }
+    if (status.shouldDownload) {
+      return 'Faltan bases locales ❌';
+    }
+    if (status.missingPrefix) {
+      return 'Prefijo no configurado para descargas';
+    }
+    return 'Modo offline no requiere descarga';
+  }
+
+  String _mapDownloadStepToMessage(InitialDownloadStep step) {
+    switch (step) {
+      case InitialDownloadStep.clientes:
+        return 'Descargando clientes...';
+      case InitialDownloadStep.productos:
+        return 'Descargando productos...';
+      case InitialDownloadStep.verificando:
+        return 'Verificando integridad...';
+      case InitialDownloadStep.completado:
+        return 'Completado ✅';
     }
   }
 
