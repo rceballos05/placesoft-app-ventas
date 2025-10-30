@@ -291,7 +291,7 @@ class CartNotifier extends StateNotifier<CartState> {
 
   double calculateTotal() => state.total;
 
-  Future<bool> saveCartToVenta() async {
+  Future<bool> saveCartToVenta({required int numeroVenta}) async {
     if (state.items.isEmpty) {
       state = state.copyWith(errorMessage: 'No hay productos en el carrito.');
       return false;
@@ -305,7 +305,7 @@ class CartNotifier extends StateNotifier<CartState> {
     final caja = state.items.first.rollo.cajaDoc ?? user?.caja ?? '00';
     final fecha = _formatDate(now);
     final hora = _formatTime(now);
-    final numeroDoc = _buildNumeroDoc(now);
+    final numeroDoc = numeroVenta.toString();
     final total = calculateTotal();
 
     try {
@@ -478,8 +478,6 @@ class CartNotifier extends StateNotifier<CartState> {
       await _logError('syncPendingSales', error, stackTrace);
     }
   }
-
-  String _buildNumeroDoc(DateTime now) => 'NPE${now.millisecondsSinceEpoch}';
 
   String _formatDate(DateTime dateTime) =>
       '${dateTime.year.toString().padLeft(4, '0')}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
