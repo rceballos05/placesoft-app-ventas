@@ -2,13 +2,18 @@ import 'package:animated_theme_switcher/animated_theme_switcher.dart'
     hide ThemeModel, ThemeModelInheritedNotifier;
 import 'package:aplicacion_ventas/core/theme/app_theme.dart';
 import 'package:aplicacion_ventas/core/theme/theme_model.dart';
+import 'package:aplicacion_ventas/db/db_clientes.dart';
 import 'package:aplicacion_ventas/presentation/router/app_router.dart';
+import 'package:aplicacion_ventas/presentation/widgets/busqueda_cliente.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  BuscarCliente.configure(
+    searcher: DBClientes.clienteSearch,
+  );
   final themeModel = ThemeModel();
   await themeModel.loadThemeMode();
 
