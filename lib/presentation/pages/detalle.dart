@@ -154,7 +154,7 @@ class _DetalleState extends ConsumerState<Detalle> {
         setState(() {
           _producto = detalle.producto;
           _imageUrl = detalle.imageUrl;
-          _unitPrice = max(0, detalle.producto.precio);
+          _unitPrice = max(0, detalle.producto.precio.toInt());
           _productMaxDiscount = max(0, detalle.maxDiscount);
           // _maxDiscount = max(0, effectiveMaxDiscount);
           _quantity = 1;
@@ -309,7 +309,8 @@ class _DetalleState extends ConsumerState<Detalle> {
     }
 
     final cartState = ref.read(cartProvider);
-    if (cartState.items.any((item) => item.rollo.artCodigo == detail.codigobarra)) {
+    if (cartState.items
+        .any((item) => item.rollo.artCodigo == detail.codigobarra)) {
       _showError('El producto ya fue agregado al carrito.');
       return;
     }
@@ -671,7 +672,7 @@ class _ProductDetailView extends StatelessWidget {
               controller: discountController,
               onChanged: onDiscountChanged,
               currencySettings: currencySettings,
-              unitPrice: producto.precio,
+              unitPrice: producto.precio.toInt(),
               discountPercent: discountPercent,
             ),
           if (canApplyDiscount) const SizedBox(height: 24),

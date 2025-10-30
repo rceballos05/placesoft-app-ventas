@@ -9,7 +9,7 @@ class DBClientes {
 
   static Future<Database> _openDb() async {
     final db = await DatabaseHelper.openDatabaseFile('clientes.db');
-    await DatabaseHelper.ensureSyncColumns(db, 'mae_clientes');
+    //await DatabaseHelper.ensureSyncColumns(db, 'mae_clientes');
     return db;
   }
 
@@ -36,11 +36,11 @@ class DBClientes {
       // Búsqueda flexible: coincide en cualquier parte del nombre o rut
       final result = await db.rawQuery('''
         SELECT * FROM mae_clientes
-        WHERE LOWER(nombre) LIKE ?
-           OR LOWER(rut) LIKE ?
+        WHERE nombre LIKE ?
+           OR rut LIKE ?
         ORDER BY nombre ASC
         LIMIT 50
-      ''', ['%$palabra%', '%$palabra%']);
+      ''', ['%${palabra.toUpperCase()}%', '%${palabra.toUpperCase()}%']);
 
       for (final item in result) {
         clientes.add(Cliente.fromMap(item));
