@@ -303,8 +303,7 @@ class _PerfilState extends ConsumerState<Perfil>
                   ),
                   child: Icon(
                     LineAwesomeIcons.pen,
-                    color:
-                        isDark ? colorScheme.primary : colorScheme.secondary,
+                    color: isDark ? colorScheme.primary : colorScheme.secondary,
                     size: 18,
                   ),
                 ),
@@ -472,7 +471,7 @@ class _PerfilState extends ConsumerState<Perfil>
 
   Future<void> _downloadDatabase(String type) async {
     final isClientes = type == 'clientes';
-    final endpoint = isClientes ? 'exportclientes' : 'exportproductos';
+    final endpoint = isClientes ? 'export-clientes' : 'export/productos';
     final fileName = isClientes ? 'clientes.db' : 'productos.db';
     final descripcion = isClientes ? 'clientes' : 'productos';
 
@@ -483,25 +482,26 @@ class _PerfilState extends ConsumerState<Perfil>
 
     try {
       final prefijo =
-          ref.read(loginControllerProvider).user?.prefijo ?? 'crvictoria';
+          ref.read(loginControllerProvider).user?.prefijo ?? 'placesoft';
       final uri = Uri.parse(
-        'https://tuservidorapi.com/api/sincronizacion/$endpoint?prefijo=$prefijo',
+        'http://192.168.1.2:80/api/Sincronizacion/$endpoint/$prefijo',
       );
       final response = await http.get(uri);
 
       if (response.statusCode != 200) {
-        throw HttpException('Error ${response.statusCode} al descargar $descripcion');
+        throw HttpException(
+            'Error ${response.statusCode} al descargar $descripcion');
       }
 
       final directory = await getApplicationDocumentsDirectory();
-      final appDbPath =
-          '${directory.path}${Platform.pathSeparator}AppDB';
+      final appDbPath = '${directory.path}${Platform.pathSeparator}AppDB';
       final appDbDirectory = Directory(appDbPath);
       if (!await appDbDirectory.exists()) {
         await appDbDirectory.create(recursive: true);
       }
 
-      final file = File('${appDbDirectory.path}${Platform.pathSeparator}$fileName');
+      final file =
+          File('${appDbDirectory.path}${Platform.pathSeparator}$fileName');
       await file.writeAsBytes(response.bodyBytes, flush: true);
 
       if (!mounted) return;

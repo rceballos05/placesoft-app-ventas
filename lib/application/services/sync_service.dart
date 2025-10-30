@@ -62,7 +62,7 @@ class SyncService {
     required SyncRemoteDataSource remoteDataSource,
     required LoginService loginService,
     Connectivity? connectivity,
-    String defaultPrefix = 'crvictoria',
+    String defaultPrefix = 'placesoft',
   })  : _remoteDataSource = remoteDataSource,
         _loginService = loginService,
         _connectivity = connectivity ?? Connectivity(),
@@ -94,13 +94,15 @@ class SyncService {
     }
 
     try {
-      developer.log('Sincronizando ventas locales de $prefix', name: 'SyncService');
+      developer.log('Sincronizando ventas locales de $prefix',
+          name: 'SyncService');
       await _remoteDataSource.syncLocalSales(prefix: prefix);
       await _loginService.asegurarBaseLocal(prefix);
     } on Failure {
       rethrow;
     } catch (error, stackTrace) {
-      developer.log('Error durante la sincronización', name: 'SyncService', error: error, stackTrace: stackTrace);
+      developer.log('Error durante la sincronización',
+          name: 'SyncService', error: error, stackTrace: stackTrace);
       throw Failure('No fue posible sincronizar los datos', cause: error);
     }
   }
@@ -123,25 +125,27 @@ class SyncService {
     }
 
     try {
-      developer.log('Descargando información para $prefix', name: 'SyncService');
+      developer.log('Descargando información para $prefix',
+          name: 'SyncService');
       await _remoteDataSource.downloadCatalog(prefix: prefix);
       await _loginService.asegurarBaseLocal(prefix);
     } on Failure {
       rethrow;
     } catch (error, stackTrace) {
-      developer.log('Error durante la descarga', name: 'SyncService', error: error, stackTrace: stackTrace);
+      developer.log('Error durante la descarga',
+          name: 'SyncService', error: error, stackTrace: stackTrace);
       throw Failure('Error al descargar información', cause: error);
     }
   }
 
   /// Retrieves whether the initial offline data should be downloaded.
-  Future<InitialSyncStatus> getInitialDownloadStatus({String? prefixOverride}) async {
+  Future<InitialSyncStatus> getInitialDownloadStatus(
+      {String? prefixOverride}) async {
     final prefs = await SharedPreferences.getInstance();
     final alreadySynced = prefs.getBool(_syncedFlagKey) ?? false;
 
-    final storedPrefix = prefixOverride ??
-        prefs.getString(_storedPrefixKey) ??
-        _defaultPrefix;
+    final storedPrefix =
+        prefixOverride ?? prefs.getString(_storedPrefixKey) ?? _defaultPrefix;
 
     if (storedPrefix.trim().isEmpty) {
       return InitialSyncStatus(
@@ -163,7 +167,8 @@ class SyncService {
       );
     }
 
-    final status = await _remoteDataSource.fetchInitialSyncStatus(prefix: storedPrefix);
+    final status =
+        await _remoteDataSource.fetchInitialSyncStatus(prefix: storedPrefix);
     await prefs.setString(_storedPrefixKey, status.prefix);
     return InitialSyncStatus(
       downloadData: status.downloadData,
@@ -190,36 +195,42 @@ class SyncService {
 
     try {
       onProgress?.call(
-        const InitialDownloadProgress(step: InitialDownloadStep.clientes, progress: 0.1),
+        const InitialDownloadProgress(
+            step: InitialDownloadStep.clientes, progress: 0.1),
       );
-      final clientsBytes = await _remoteDataSource
-          .downloadClientsDatabase(prefix: effectiveStatus.prefix);
+      final clientsBytes = await _remoteDataSource.downloadClientsDatabase(
+          prefix: effectiveStatus.prefix);
       await clientsFile.writeAsBytes(clientsBytes, flush: true);
       await _validateDatabaseFile(clientsFile, 'clientes');
 
       onProgress?.call(
-        const InitialDownloadProgress(step: InitialDownloadStep.productos, progress: 0.6),
+        const InitialDownloadProgress(
+            step: InitialDownloadStep.productos, progress: 0.6),
       );
-      final productsBytes = await _remoteDataSource
-          .downloadProductsDatabase(prefix: effectiveStatus.prefix);
+      final productsBytes = await _remoteDataSource.downloadProductsDatabase(
+          prefix: effectiveStatus.prefix);
       await productsFile.writeAsBytes(productsBytes, flush: true);
       await _validateDatabaseFile(productsFile, 'productos');
 
       onProgress?.call(
-        const InitialDownloadProgress(step: InitialDownloadStep.verificando, progress: 0.85),
+        const InitialDownloadProgress(
+            step: InitialDownloadStep.verificando, progress: 0.85),
       );
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_syncedFlagKey, true);
       await prefs.setString(_storedPrefixKey, effectiveStatus.prefix);
 
-      developer.log('clientes.db almacenado en ${clientsFile.path}', name: 'SyncService');
-      developer.log('productos.db almacenado en ${productsFile.path}', name: 'SyncService');
+      developer.log('clientes.db almacenado en ${clientsFile.path}',
+          name: 'SyncService');
+      developer.log('productos.db almacenado en ${productsFile.path}',
+          name: 'SyncService');
       print('clientes.db -> ${clientsFile.path}');
       print('productos.db -> ${productsFile.path}');
 
       onProgress?.call(
-        const InitialDownloadProgress(step: InitialDownloadStep.completado, progress: 1.0),
+        const InitialDownloadProgress(
+            step: InitialDownloadStep.completado, progress: 1.0),
       );
 
       return true;
@@ -267,7 +278,8 @@ class SyncService {
       }
       return prefijo;
     } on Failure catch (failure) {
-      developer.log('No fue posible recuperar prefijo', name: 'SyncService', error: failure);
+      developer.log('No fue posible recuperar prefijo',
+          name: 'SyncService', error: failure);
       return null;
     }
   }
