@@ -1,3 +1,4 @@
+import 'package:aplicacion_ventas/db/database_helper.dart';
 import 'package:aplicacion_ventas/models/cliente.dart';
 import 'package:aplicacion_ventas/presentation/widgets/busqueda_cliente.dart';
 import 'package:aplicacion_ventas/presentation/widgets/cart_item_tile.dart';
@@ -17,6 +18,38 @@ class CartPage extends ConsumerStatefulWidget {
 
 class _CartPageState extends ConsumerState<CartPage> {
   Cliente? clienteSeleccionado;
+
+  Future<int> _obtenerProximoNumeroVenta() async {
+    final db = await DatabaseHelper.openDatabaseFile('ventas.db');
+    try {
+      final result = await db.rawQuery(
+        'SELECT numero_doc FROM local_venta_cabeza_00 '
+        'ORDER BY CAST(numero_doc AS INTEGER) DESC LIMIT 1',
+      );
+      if (result.isNotEmpty) {
+        final ultimo = result.first['numero_doc'];
+        if (ultimo is int) {
+          return ultimo + 1;
+        }
+        if (ultimo is String) {
+          final parsed = int.tryParse(ultimo);
+          if (parsed != null) {
+            return parsed + 1;
+          }
+          final match = RegExp(r'\d+').firstMatch(ultimo);
+          if (match != null) {
+            final value = int.tryParse(match.group(0)!);
+            if (value != null) {
+              return value + 1;
+            }
+          }
+        }
+      }
+      return 1;
+    } finally {
+      await db.close();
+    }
+  }
 
   Future<void> _mostrarSelectorCliente(BuildContext context) async {
     final cliente = await showSearch<Cliente?>(
@@ -183,16 +216,33 @@ class _CartPageState extends ConsumerState<CartPage> {
                                   }
                                 }
 
-                                final messenger = ScaffoldMessenger.of(context);
-                                final wasSaved =
-                                    await controller.saveCartToVenta();
+                                final messenger =
+                                    ScaffoldMessenger.of(context);
+                                int numeroVenta;
+                                try {
+                                  numeroVenta =
+                                      await _obtenerProximoNumeroVenta();
+                                } catch (error) {
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          'No se pudo obtener el número de nota: $error'),
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                final wasSaved = await controller
+                                    .saveCartToVenta(numeroVenta: numeroVenta);
                                 final latestState = ref.read(cartProvider);
                                 if (wasSaved) {
                                   messenger.showSnackBar(
-                                    const SnackBar(
+                                    SnackBar(
                                       content: Text(
-                                          'Nota de pedido generada correctamente.'),
-                                      duration: Duration(seconds: 2),
+                                        'Nota de pedido #$numeroVenta generada correctamente.',
+                                      ),
+                                      duration: const Duration(seconds: 2),
                                     ),
                                   );
                                 } else if (latestState.errorMessage != null) {
