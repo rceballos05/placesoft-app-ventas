@@ -18,7 +18,7 @@ import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 
 class AgregarClientePage extends StatefulWidget {
   const AgregarClientePage({super.key});
-
+  static const routeName = '/cliente';
   @override
   State<AgregarClientePage> createState() => _AgregarClientePageState();
 }
@@ -131,7 +131,9 @@ class _AgregarClientePageState extends State<AgregarClientePage> {
                           prefixIcon: Icon(Icons.key),
                           border: OutlineInputBorder(),
                         ),
-                        inputFormatters: <TextInputFormatter>[RutInputFormatter()],
+                        inputFormatters: <TextInputFormatter>[
+                          RutInputFormatter()
+                        ],
                         validator: (value) {
                           final text = value?.trim() ?? '';
                           if (text.isEmpty) {
@@ -149,7 +151,8 @@ class _AgregarClientePageState extends State<AgregarClientePage> {
                         decoration: const InputDecoration(
                           labelText: 'Nombre',
                           hintText: 'Ingrese su Nombre',
-                          prefixIcon: Icon(LineAwesomeIcons.identification_badge),
+                          prefixIcon:
+                              Icon(LineAwesomeIcons.identification_badge),
                           border: OutlineInputBorder(),
                         ),
                         validator: (value) {
@@ -336,7 +339,8 @@ class _AgregarClientePageState extends State<AgregarClientePage> {
 
     final user = globals.user;
     if (user == null) {
-      _mostrarAlertaError(context, 'No se encontró información del vendedor. Inicia sesión nuevamente.');
+      _mostrarAlertaError(context,
+          'No se encontró información del vendedor. Inicia sesión nuevamente.');
       return;
     }
 
@@ -469,7 +473,8 @@ class _AgregarClientePageState extends State<AgregarClientePage> {
 
       return true;
     } catch (error, stackTrace) {
-      developer.log('Error al guardar cliente', error: error, stackTrace: stackTrace, name: 'AgregarClientePage');
+      developer.log('Error al guardar cliente',
+          error: error, stackTrace: stackTrace, name: 'AgregarClientePage');
       if (mounted) {
         _mostrarAlertaError(
           context,
@@ -484,10 +489,13 @@ class _AgregarClientePageState extends State<AgregarClientePage> {
     if (comuna.isEmpty) {
       return '000';
     }
-    final sanitized = comuna.replaceAll(RegExp(r'[^0-9A-Za-z]'), '').toUpperCase();
+    final sanitized =
+        comuna.replaceAll(RegExp(r'[^0-9A-Za-z]'), '').toUpperCase();
     return sanitized.isEmpty
         ? '000'
-        : sanitized.substring(0, sanitized.length >= 3 ? 3 : sanitized.length).padLeft(3, '0');
+        : sanitized
+            .substring(0, sanitized.length >= 3 ? 3 : sanitized.length)
+            .padLeft(3, '0');
   }
 
   void _limpiarFormulario() {

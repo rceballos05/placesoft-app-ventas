@@ -74,7 +74,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No fue posible verificar datos locales.')),
+        const SnackBar(
+            content: Text('No fue posible verificar datos locales.')),
       );
       return;
     }
@@ -92,7 +93,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
 
     final progressNotifier = ValueNotifier<InitialDownloadProgress>(
-      const InitialDownloadProgress(step: InitialDownloadStep.clientes, progress: 0),
+      const InitialDownloadProgress(
+          step: InitialDownloadStep.clientes, progress: 0),
     );
     Object? downloadError;
 
@@ -153,12 +155,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     if (downloadError != null) {
       final message = downloadError is Failure
-          ? downloadError.message
+          ? downloadError.toString()
           : 'Error al descargar los datos locales.';
       messenger.showSnackBar(SnackBar(content: Text(message)));
     } else {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Datos locales descargados correctamente.')),
+        const SnackBar(
+            content: Text('Datos locales descargados correctamente.')),
       );
     }
   }
