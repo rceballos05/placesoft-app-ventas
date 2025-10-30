@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
+import 'package:aplicacion_ventas/application/services/sync_service.dart'
+    show InitialDownloadProgress, InitialDownloadStep, InitialSyncStatus;
+import 'package:aplicacion_ventas/core/utils/failure.dart';
 import 'package:aplicacion_ventas/core/utils/screen_utils.dart';
 import 'package:aplicacion_ventas/presentation/pages/home_page.dart';
 import 'package:aplicacion_ventas/presentation/widgets/numeric_keyboard.dart';
@@ -33,11 +36,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   bool _postLoginFlowRunning = false;
   bool _suppressDownloadAlerts = false;
   bool _suppressSyncAlerts = false;
+  bool _initialDownloadChecked = false;
 
   @override
   void initState() {
     super.initState();
     _rutFocusNode.addListener(_handleRutFocusChange);
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _checkInitialDataDownload());
   }
 
   @override
@@ -48,6 +54,126 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     _rutFocusNode.dispose();
     _passwordFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkInitialDataDownload() async {
+    if (_initialDownloadChecked || !mounted) {
+      return;
+    }
+    _initialDownloadChecked = true;
+
+    final syncService = ref.read(syncServiceProvider);
+    InitialSyncStatus status;
+    try {
+      status = await syncService.getInitialDownloadStatus();
+    } on Failure catch (failure) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(failure.message)));
+      return;
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No fue posible verificar datos locales.')),
+      );
+      return;
+    }
+
+    if (!status.shouldDownload || !mounted) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Se descargarán los datos locales para el modo offline.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    final progressNotifier = ValueNotifier<InitialDownloadProgress>(
+      const InitialDownloadProgress(step: InitialDownloadStep.clientes, progress: 0),
+    );
+    Object? downloadError;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        Future<void>.microtask(() async {
+          try {
+            await syncService.ensureInitialDataAvailable(
+              status: status,
+              onProgress: (progress) => progressNotifier.value = progress,
+            );
+          } catch (error) {
+            downloadError = error;
+          } finally {
+            if (Navigator.of(dialogContext).canPop()) {
+              Navigator.of(dialogContext).pop();
+            }
+          }
+        });
+
+        return ValueListenableBuilder<InitialDownloadProgress>(
+          valueListenable: progressNotifier,
+          builder: (context, progress, _) {
+            final clampedProgress = progress.progress.clamp(0.0, 1.0);
+            final isCompleted = progress.step == InitialDownloadStep.completado;
+            final indicatorValue = isCompleted
+                ? 1.0
+                : clampedProgress <= 0
+                    ? null
+                    : clampedProgress;
+
+            return AlertDialog(
+              title: const Text('Descargando datos locales'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  LinearProgressIndicator(value: indicatorValue),
+                  const SizedBox(height: 16),
+                  Text(_progressMessage(progress.step)),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    progressNotifier.dispose();
+
+    if (!mounted) {
+      return;
+    }
+
+    messenger.hideCurrentSnackBar();
+
+    if (downloadError != null) {
+      final message = downloadError is Failure
+          ? downloadError.message
+          : 'Error al descargar los datos locales.';
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    } else {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Datos locales descargados correctamente.')),
+      );
+    }
+  }
+
+  String _progressMessage(InitialDownloadStep step) {
+    switch (step) {
+      case InitialDownloadStep.clientes:
+        return 'Descargando base de clientes...';
+      case InitialDownloadStep.productos:
+        return 'Descargando base de productos...';
+      case InitialDownloadStep.verificando:
+        return 'Verificando archivos descargados...';
+      case InitialDownloadStep.completado:
+        return 'Datos locales listos.';
+    }
   }
 
   @override
