@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:io';
 
 import 'package:animated_theme_switcher/animated_theme_switcher.dart'
     hide ThemeModel;
@@ -18,7 +19,9 @@ import 'package:aplicacion_ventas/statics/globals.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 /// Pantalla de perfil del usuario con accesos directos a distintas gestiones.
 class Perfil extends ConsumerStatefulWidget {
@@ -36,6 +39,8 @@ class _PerfilState extends ConsumerState<Perfil>
   final TextEditingController nuevoPass = TextEditingController();
   late final AnimationController _controller;
   late final Animation<double> _fade;
+  bool _isDownloading = false;
+  String? _currentDownloadType;
 
   @override
   void initState() {
@@ -371,51 +376,161 @@ class _PerfilState extends ConsumerState<Perfil>
     );
   }
 
-  Widget _buildOptions(BuildContext context) => Column(
-        children: [
-          ProfileListItem(
-            icon: LineAwesomeIcons.user,
-            text: 'Mostrar Datos',
-            onTap: () =>
-                Navigator.pushNamed(context, ModificarDatosPage.routeName),
+  Widget _buildOptions(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Card(
+          elevation: 0,
+          color: theme.colorScheme.surface,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Respaldos manuales',
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(LineAwesomeIcons.download),
+                  label: const Text('Descargar clientes'),
+                  onPressed: _isDownloading
+                      ? null
+                      : () => _downloadDatabase('clientes'),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: const Icon(LineAwesomeIcons.download),
+                  label: const Text('Descargar productos'),
+                  onPressed: _isDownloading
+                      ? null
+                      : () => _downloadDatabase('productos'),
+                ),
+                if (_isDownloading) ...[
+                  const SizedBox(height: 16),
+                  const Center(child: CircularProgressIndicator()),
+                  if (_currentDownloadType != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Descargando ${_currentDownloadType!}...',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ],
+              ],
+            ),
           ),
-          ProfileListItem(
-            icon: LineAwesomeIcons.history,
-            text: 'Historial de Ventas',
-            onTap: () => Navigator.pushNamed(context, HistorialPage.routeName),
-          ),
-          ProfileListItem(
-            icon: LineAwesomeIcons.user_plus,
-            text: 'Agregar Cliente',
-            onTap: () =>
-                Navigator.pushNamed(context, AgregarClientePage.routeName),
-          ),
-          ProfileListItem(
-            icon: LineAwesomeIcons.user_edit,
-            text: 'Modificar Cliente',
-            onTap: () =>
-                Navigator.pushNamed(context, ModificarClientePage.routeName),
-          ),
-          ProfileListItem(
-            icon: LineAwesomeIcons.map_marker,
-            text: 'Agregar Destino Cliente',
-            onTap: () =>
-                Navigator.pushNamed(context, AgregarDestinoPage.routeName),
-          ),
-          ProfileListItem(
-            icon: LineAwesomeIcons.key,
-            text: 'Cambiar Contraseña',
-            onTap: () => _openDialog(context),
-          ),
-          ProfileListItem(
-            icon: LineAwesomeIcons.alternate_sign_out,
-            text: 'Cerrar Sesión',
-            textColor: Theme.of(context).colorScheme.error,
-            iconColor: Theme.of(context).colorScheme.error,
-            onTap: () => _cerrarSesion(context),
-          ),
-        ],
+        ),
+        const SizedBox(height: 12),
+        ProfileListItem(
+          icon: LineAwesomeIcons.user,
+          text: 'Mostrar Datos',
+          onTap: () =>
+              Navigator.pushNamed(context, ModificarDatosPage.routeName),
+        ),
+        ProfileListItem(
+          icon: LineAwesomeIcons.history,
+          text: 'Historial de Ventas',
+          onTap: () => Navigator.pushNamed(context, HistorialPage.routeName),
+        ),
+        ProfileListItem(
+          icon: LineAwesomeIcons.user_plus,
+          text: 'Agregar Cliente',
+          onTap: () =>
+              Navigator.pushNamed(context, AgregarClientePage.routeName),
+        ),
+        ProfileListItem(
+          icon: LineAwesomeIcons.user_edit,
+          text: 'Modificar Cliente',
+          onTap: () =>
+              Navigator.pushNamed(context, ModificarClientePage.routeName),
+        ),
+        ProfileListItem(
+          icon: LineAwesomeIcons.map_marker,
+          text: 'Agregar Destino Cliente',
+          onTap: () =>
+              Navigator.pushNamed(context, AgregarDestinoPage.routeName),
+        ),
+        ProfileListItem(
+          icon: LineAwesomeIcons.key,
+          text: 'Cambiar Contraseña',
+          onTap: () => _openDialog(context),
+        ),
+        ProfileListItem(
+          icon: LineAwesomeIcons.alternate_sign_out,
+          text: 'Cerrar Sesión',
+          textColor: Theme.of(context).colorScheme.error,
+          iconColor: Theme.of(context).colorScheme.error,
+          onTap: () => _cerrarSesion(context),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _downloadDatabase(String type) async {
+    final isClientes = type == 'clientes';
+    final endpoint = isClientes ? 'exportclientes' : 'exportproductos';
+    final fileName = isClientes ? 'clientes.db' : 'productos.db';
+    final descripcion = isClientes ? 'clientes' : 'productos';
+
+    setState(() {
+      _isDownloading = true;
+      _currentDownloadType = descripcion;
+    });
+
+    try {
+      final prefijo =
+          ref.read(loginControllerProvider).user?.prefijo ?? 'crvictoria';
+      final uri = Uri.parse(
+        'https://tuservidorapi.com/api/sincronizacion/$endpoint?prefijo=$prefijo',
       );
+      final response = await http.get(uri);
+
+      if (response.statusCode != 200) {
+        throw HttpException('Error ${response.statusCode} al descargar $descripcion');
+      }
+
+      final directory = await getApplicationDocumentsDirectory();
+      final appDbPath =
+          '${directory.path}${Platform.pathSeparator}AppDB';
+      final appDbDirectory = Directory(appDbPath);
+      if (!await appDbDirectory.exists()) {
+        await appDbDirectory.create(recursive: true);
+      }
+
+      final file = File('${appDbDirectory.path}${Platform.pathSeparator}$fileName');
+      await file.writeAsBytes(response.bodyBytes, flush: true);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              'Base de datos de $descripcion descargada correctamente.',
+            ),
+          ),
+        );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Error al descargar $descripcion: $e'),
+          ),
+        );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isDownloading = false;
+        _currentDownloadType = null;
+      });
+    }
+  }
 
   Future<void> _cerrarSesion(BuildContext context) async {
     final salir = await showDialog<bool>(
