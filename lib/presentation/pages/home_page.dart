@@ -11,7 +11,7 @@ import 'package:aplicacion_ventas/models/producto.dart';
 import 'package:aplicacion_ventas/presentation/pages/cart_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/detalle.dart';
 import 'package:aplicacion_ventas/presentation/pages/perfil.dart';
-import 'package:aplicacion_ventas/presentation/widgets/busqueda_producto.dart';
+import 'package:aplicacion_ventas/presentation/widgets/buscar_producto.dart';
 import 'package:currency_formatter/currency_formatter.dart';
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
@@ -56,8 +56,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   void initState() {
     super.initState();
-    BuscarProducto.configure(
-        searcher: _searchProducts, currencySettings: _clpSettings);
+    BuscarProducto.configure(searcher: DBProductos.productoSearch);
     _scrollController.addListener(_onScroll);
     _loadMoreProducts(initial: true, resetCache: true);
   }
@@ -155,8 +154,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       await database.close();
     }
 
-    BuscarProducto.configure(
-        searcher: _searchProducts, currencySettings: _clpSettings);
+    BuscarProducto.configure(searcher: DBProductos.productoSearch);
   }
 
   Future<List<Producto>> obtenerProductosOffline(
@@ -164,25 +162,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     await _ensureMaeArticulosCache();
     final items = _maeArticulosCache.skip(offset).take(limit).toList();
     return _mapMaeArticulos(items);
-  }
-
-  Future<List<Producto>> _searchProducts(String query) async {
-    await _ensureMaeArticulosCache();
-    final normalized = query.trim().toLowerCase();
-    if (normalized.isEmpty) {
-      return _mapMaeArticulos(_maeArticulosCache.take(_pageSize).toList());
-    }
-
-    final matches = _maeArticulosCache
-        .where((item) {
-          final description = item.descripcion?.toLowerCase() ?? '';
-          final code = item.codigobarra?.toLowerCase() ?? '';
-          return description.contains(normalized) || code.contains(normalized);
-        })
-        .take(30)
-        .toList();
-
-    return _mapMaeArticulos(matches);
   }
 
   Future<List<Producto>> _mapMaeArticulos(List<MaeArticulos> items) async {
@@ -208,8 +187,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           Producto(
             codigobarra: code,
             descripcion: (item.descripcion ?? '').trim(),
-            descuento: item.descuento?.toInt() ?? 0,
-            precio: precioData.precioVenta.toInt(),
+            precioVenta: precioData.precioVenta,
           ),
         );
       }
@@ -220,11 +198,19 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Product _mapToDomain(Producto producto) {
+    double discount = 0;
+    for (final item in _maeArticulosCache) {
+      final code = item.codigobarra?.trim();
+      if (code != null && code == producto.codigobarra) {
+        discount = item.descuento ?? 0;
+        break;
+      }
+    }
     return Product(
       code: producto.codigobarra,
       description: producto.descripcion,
-      price: producto.precio.toDouble(),
-      discount: producto.descuento.toDouble(),
+      price: producto.precioVenta ?? 0,
+      discount: discount,
       imageUrl: 'https://picsum.photos/seed/${producto.codigobarra}/400/400',
     );
   }
