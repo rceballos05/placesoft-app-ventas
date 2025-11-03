@@ -7,8 +7,8 @@ import 'package:aplicacion_ventas/core/utils/result.dart';
 import 'package:aplicacion_ventas/data/datasources/remote/sync_remote_datasource.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 
 import 'login_service.dart';
 
@@ -62,7 +62,7 @@ class SyncService {
     required SyncRemoteDataSource remoteDataSource,
     required LoginService loginService,
     Connectivity? connectivity,
-    String defaultPrefix = 'placesoft',
+    String defaultPrefix = 'crvictoria',
   })  : _remoteDataSource = remoteDataSource,
         _loginService = loginService,
         _connectivity = connectivity ?? Connectivity(),
@@ -94,15 +94,13 @@ class SyncService {
     }
 
     try {
-      developer.log('Sincronizando ventas locales de $prefix',
-          name: 'SyncService');
+      developer.log('Sincronizando ventas locales de $prefix', name: 'SyncService');
       await _remoteDataSource.syncLocalSales(prefix: prefix);
       await _loginService.asegurarBaseLocal(prefix);
     } on Failure {
       rethrow;
     } catch (error, stackTrace) {
-      developer.log('Error durante la sincronización',
-          name: 'SyncService', error: error, stackTrace: stackTrace);
+      developer.log('Error durante la sincronización', name: 'SyncService', error: error, stackTrace: stackTrace);
       throw Failure('No fue posible sincronizar los datos', cause: error);
     }
   }
@@ -125,56 +123,50 @@ class SyncService {
     }
 
     try {
-      developer.log('Descargando información para $prefix',
-          name: 'SyncService');
+      developer.log('Descargando información para $prefix', name: 'SyncService');
       await _remoteDataSource.downloadCatalog(prefix: prefix);
       await _loginService.asegurarBaseLocal(prefix);
     } on Failure {
       rethrow;
     } catch (error, stackTrace) {
-      developer.log('Error durante la descarga',
-          name: 'SyncService', error: error, stackTrace: stackTrace);
+      developer.log('Error durante la descarga', name: 'SyncService', error: error, stackTrace: stackTrace);
       throw Failure('Error al descargar información', cause: error);
     }
   }
 
   /// Retrieves whether the initial offline data should be downloaded.
-  Future<InitialSyncStatus> getInitialDownloadStatus(
-      {String? prefixOverride}) async {
+  Future<InitialSyncStatus> getInitialDownloadStatus({String? prefixOverride}) async {
     final prefs = await SharedPreferences.getInstance();
-    final alreadySynced = prefs.getBool(_syncedFlagKey) ?? false;
+    final alreadySyncedFlag = prefs.getBool(_syncedFlagKey) ?? false;
 
-    final storedPrefix =
-        prefixOverride ?? prefs.getString(_storedPrefixKey) ?? _defaultPrefix;
+    final storedPrefix = prefixOverride ??
+        prefs.getString(_storedPrefixKey) ??
+        _defaultPrefix;
 
     if (storedPrefix.trim().isEmpty) {
       return InitialSyncStatus(
         downloadData: false,
         modoLocal: false,
         prefix: storedPrefix,
-        alreadySynchronized: alreadySynced,
+        alreadySynchronized: alreadySyncedFlag,
         missingPrefix: true,
       );
     }
 
-    if (alreadySynced) {
-      return InitialSyncStatus(
-        downloadData: false,
-        modoLocal: false,
-        prefix: storedPrefix,
-        alreadySynchronized: true,
-        missingPrefix: false,
-      );
+    final status = await _remoteDataSource.fetchInitialSyncStatus(prefix: storedPrefix);
+    await prefs.setString(_storedPrefixKey, status.prefix);
+
+    final hasLocalData = await _hasLocalOfflineData(status.prefix);
+    final alreadySynchronized = hasLocalData && status.modoLocal && !status.downloadData;
+    if (alreadySyncedFlag != alreadySynchronized) {
+      await prefs.setBool(_syncedFlagKey, alreadySynchronized);
     }
 
-    final status =
-        await _remoteDataSource.fetchInitialSyncStatus(prefix: storedPrefix);
-    await prefs.setString(_storedPrefixKey, status.prefix);
     return InitialSyncStatus(
       downloadData: status.downloadData,
       modoLocal: status.modoLocal,
       prefix: status.prefix,
-      alreadySynchronized: false,
+      alreadySynchronized: alreadySynchronized,
       missingPrefix: false,
     );
   }
@@ -188,57 +180,97 @@ class SyncService {
     if (!effectiveStatus.shouldDownload) {
       return false;
     }
+    final normalizedPrefix = effectiveStatus.prefix.trim().toLowerCase();
+    if (normalizedPrefix.isEmpty) {
+      throw Failure('Prefijo inválido para sincronización inicial');
+    }
 
-    final documentsDir = await getApplicationDocumentsDirectory();
-    final clientsFile = File(p.join(documentsDir.path, 'clientes.db'));
-    final productsFile = File(p.join(documentsDir.path, 'productos.db'));
+    final databasesPath = await getDatabasesPath();
+    final prefixDir = Directory(p.join(databasesPath, normalizedPrefix));
+    if (!await prefixDir.exists()) {
+      await prefixDir.create(recursive: true);
+    }
+
+    final clientsFile = File(p.join(prefixDir.path, 'clientes.db'));
+    final productsFile = File(p.join(prefixDir.path, 'productos.db'));
+    final clientsTemp = File('${clientsFile.path}.download');
+    final productsTemp = File('${productsFile.path}.download');
+    final clientsBackup = File('${clientsFile.path}.bak');
+    final productsBackup = File('${productsFile.path}.bak');
+    final backups = <File, File>{};
 
     try {
       onProgress?.call(
-        const InitialDownloadProgress(
-            step: InitialDownloadStep.clientes, progress: 0.1),
+        const InitialDownloadProgress(step: InitialDownloadStep.clientes, progress: 0.1),
       );
-      final clientsBytes = await _remoteDataSource.downloadClientsDatabase(
-          prefix: effectiveStatus.prefix);
-      await clientsFile.writeAsBytes(clientsBytes, flush: true);
-      await _validateDatabaseFile(clientsFile, 'clientes');
+      final clientsBytes = await _remoteDataSource
+          .downloadClientsDatabase(prefix: effectiveStatus.prefix);
+      await _prepareForReplacement(
+        target: clientsFile,
+        backup: clientsBackup,
+        backups: backups,
+      );
+      await _writeBytes(clientsTemp, clientsBytes);
+      await _validateDatabaseFile(clientsTemp, 'clientes');
+      await clientsTemp.rename(clientsFile.path);
 
       onProgress?.call(
-        const InitialDownloadProgress(
-            step: InitialDownloadStep.productos, progress: 0.6),
+        const InitialDownloadProgress(step: InitialDownloadStep.productos, progress: 0.6),
       );
-      final productsBytes = await _remoteDataSource.downloadProductsDatabase(
-          prefix: effectiveStatus.prefix);
-      await productsFile.writeAsBytes(productsBytes, flush: true);
-      await _validateDatabaseFile(productsFile, 'productos');
+      final productsBytes = await _remoteDataSource
+          .downloadProductsDatabase(prefix: effectiveStatus.prefix);
+      await _prepareForReplacement(
+        target: productsFile,
+        backup: productsBackup,
+        backups: backups,
+      );
+      await _writeBytes(productsTemp, productsBytes);
+      await _validateDatabaseFile(productsTemp, 'productos');
+      await productsTemp.rename(productsFile.path);
 
       onProgress?.call(
-        const InitialDownloadProgress(
-            step: InitialDownloadStep.verificando, progress: 0.85),
+        const InitialDownloadProgress(step: InitialDownloadStep.verificando, progress: 0.85),
       );
+
+      await _loginService.asegurarBaseLocal(effectiveStatus.prefix);
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_syncedFlagKey, true);
       await prefs.setString(_storedPrefixKey, effectiveStatus.prefix);
 
-      developer.log('clientes.db almacenado en ${clientsFile.path}',
-          name: 'SyncService');
-      developer.log('productos.db almacenado en ${productsFile.path}',
-          name: 'SyncService');
+      developer.log('clientes.db almacenado en ${clientsFile.path}', name: 'SyncService');
+      developer.log('productos.db almacenado en ${productsFile.path}', name: 'SyncService');
       print('clientes.db -> ${clientsFile.path}');
       print('productos.db -> ${productsFile.path}');
 
+      await _cleanupFiles(<File>[clientsTemp, productsTemp, ...backups.keys]);
+
       onProgress?.call(
-        const InitialDownloadProgress(
-            step: InitialDownloadStep.completado, progress: 1.0),
+        const InitialDownloadProgress(step: InitialDownloadStep.completado, progress: 1.0),
       );
 
       return true;
     } on Failure {
-      await _cleanupFiles(<File>[clientsFile, productsFile]);
+      await _restoreBackups(backups);
+      final cleanupTargets = <File>[clientsTemp, productsTemp, clientsBackup, productsBackup];
+      if (!backups.containsValue(clientsFile)) {
+        cleanupTargets.add(clientsFile);
+      }
+      if (!backups.containsValue(productsFile)) {
+        cleanupTargets.add(productsFile);
+      }
+      await _cleanupFiles(cleanupTargets);
       rethrow;
     } catch (error, stackTrace) {
-      await _cleanupFiles(<File>[clientsFile, productsFile]);
+      await _restoreBackups(backups);
+      final cleanupTargets = <File>[clientsTemp, productsTemp, clientsBackup, productsBackup];
+      if (!backups.containsValue(clientsFile)) {
+        cleanupTargets.add(clientsFile);
+      }
+      if (!backups.containsValue(productsFile)) {
+        cleanupTargets.add(productsFile);
+      }
+      await _cleanupFiles(cleanupTargets);
       developer.log('Error guardando bases locales',
           name: 'SyncService', error: error, stackTrace: stackTrace);
       throw Failure('Error al guardar bases locales', cause: error);
@@ -278,8 +310,7 @@ class SyncService {
       }
       return prefijo;
     } on Failure catch (failure) {
-      developer.log('No fue posible recuperar prefijo',
-          name: 'SyncService', error: failure);
+      developer.log('No fue posible recuperar prefijo', name: 'SyncService', error: failure);
       return null;
     }
   }
@@ -302,6 +333,67 @@ class SyncService {
         }
       } catch (_) {
         // Intentionally ignored: cleanup best-effort only.
+      }
+    }
+  }
+
+  Future<bool> _hasLocalOfflineData(String prefix) async {
+    final normalizedPrefix = prefix.trim().toLowerCase();
+    if (normalizedPrefix.isEmpty) {
+      return false;
+    }
+    final databasesPath = await getDatabasesPath();
+    final prefixDir = Directory(p.join(databasesPath, normalizedPrefix));
+    if (!await prefixDir.exists()) {
+      return false;
+    }
+    final clientsFile = File(p.join(prefixDir.path, 'clientes.db'));
+    final productsFile = File(p.join(prefixDir.path, 'productos.db'));
+    return await clientsFile.exists() && await productsFile.exists();
+  }
+
+  Future<void> _prepareForReplacement({
+    required File target,
+    required File backup,
+    required Map<File, File> backups,
+  }) async {
+    if (!await target.exists()) {
+      return;
+    }
+    try {
+      if (await backup.exists()) {
+        await backup.delete();
+      }
+      await backup.parent.create(recursive: true);
+      await target.copy(backup.path);
+      backups[backup] = target;
+      await target.delete();
+    } catch (error) {
+      throw Failure('No fue posible preparar ${p.basename(target.path)}', cause: error);
+    }
+  }
+
+  Future<void> _writeBytes(File file, List<int> bytes) async {
+    if (await file.exists()) {
+      await file.delete();
+    }
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(bytes, flush: true);
+  }
+
+  Future<void> _restoreBackups(Map<File, File> backups) async {
+    for (final entry in backups.entries) {
+      final backup = entry.key;
+      final destination = entry.value;
+      try {
+        if (await backup.exists()) {
+          if (await destination.exists()) {
+            await destination.delete();
+          }
+          await backup.rename(destination.path);
+        }
+      } catch (_) {
+        // Best-effort restoration.
       }
     }
   }
