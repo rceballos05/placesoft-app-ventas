@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class Detalle extends ConsumerStatefulWidget {
@@ -173,10 +174,14 @@ class _DetalleState extends ConsumerState<Detalle> {
 
   Future<String> _resolveProductsDatabasePath(LoginState state) async {
     final candidates = <String>[];
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final documentsPath = p.join(documentsDirectory.path, 'productos.db');
     final cached = state.databasePath;
     if (cached != null && cached.isNotEmpty) {
       candidates.add(cached);
     }
+
+    candidates.add(documentsPath);
 
     final userPrefix = state.user?.prefijo;
     if (userPrefix == null || userPrefix.isEmpty) {

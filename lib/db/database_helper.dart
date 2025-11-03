@@ -1,13 +1,27 @@
+import 'dart:io';
+
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// Utility helpers to work with the local SQLite databases shipped in the app.
 class DatabaseHelper {
   const DatabaseHelper._();
 
-  static Future<Database> openDatabaseFile(String fileName) async {
+  static Future<String> _resolveDatabasePath(String fileName) async {
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final documentsPath = p.join(documentsDirectory.path, fileName);
+    final documentsFile = File(documentsPath);
+    if (await documentsFile.exists()) {
+      return documentsPath;
+    }
+
     final databasesPath = await getDatabasesPath();
-    final path = p.join(databasesPath, fileName);
+    return p.join(databasesPath, fileName);
+  }
+
+  static Future<Database> openDatabaseFile(String fileName) async {
+    final path = await _resolveDatabasePath(fileName);
     return openDatabase(path);
   }
 

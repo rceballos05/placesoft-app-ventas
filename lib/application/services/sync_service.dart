@@ -7,6 +7,7 @@ import 'package:aplicacion_ventas/core/utils/result.dart';
 import 'package:aplicacion_ventas/data/datasources/remote/sync_remote_datasource.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -185,14 +186,13 @@ class SyncService {
       throw Failure('Prefijo inválido para sincronización inicial');
     }
 
-    final databasesPath = await getDatabasesPath();
-    final prefixDir = Directory(p.join(databasesPath, normalizedPrefix));
-    if (!await prefixDir.exists()) {
-      await prefixDir.create(recursive: true);
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    if (!await documentsDirectory.exists()) {
+      await documentsDirectory.create(recursive: true);
     }
 
-    final clientsFile = File(p.join(prefixDir.path, 'clientes.db'));
-    final productsFile = File(p.join(prefixDir.path, 'productos.db'));
+    final clientsFile = File(p.join(documentsDirectory.path, 'clientes.db'));
+    final productsFile = File(p.join(documentsDirectory.path, 'productos.db'));
     final clientsTemp = File('${clientsFile.path}.download');
     final productsTemp = File('${productsFile.path}.download');
     final clientsBackup = File('${clientsFile.path}.bak');
@@ -337,13 +337,9 @@ class SyncService {
     if (normalizedPrefix.isEmpty) {
       return false;
     }
-    final databasesPath = await getDatabasesPath();
-    final prefixDir = Directory(p.join(databasesPath, normalizedPrefix));
-    if (!await prefixDir.exists()) {
-      return false;
-    }
-    final clientsFile = File(p.join(prefixDir.path, 'clientes.db'));
-    final productsFile = File(p.join(prefixDir.path, 'productos.db'));
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final clientsFile = File(p.join(documentsDirectory.path, 'clientes.db'));
+    final productsFile = File(p.join(documentsDirectory.path, 'productos.db'));
     return await clientsFile.exists() && await productsFile.exists();
   }
 
