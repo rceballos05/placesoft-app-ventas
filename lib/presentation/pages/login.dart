@@ -11,6 +11,7 @@ import 'package:aplicacion_ventas/core/utils/failure.dart';
 import 'package:aplicacion_ventas/core/utils/screen_utils.dart';
 import 'package:aplicacion_ventas/presentation/pages/home_page.dart';
 import 'package:aplicacion_ventas/presentation/widgets/numeric_keyboard.dart';
+import 'package:aplicacion_ventas/utils/local_db_info.dart';
 import 'package:aplicacion_ventas/utils/rut_utils.dart';
 
 /// Login screen that authenticates the user and triggers sync tasks.
@@ -376,6 +377,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                               strokeWidth: 2),
                                         )
                                       : const Text('Iniciar sesión'),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton.icon(
+                                  onPressed: isBusy
+                                      ? null
+                                      : () => mostrarInfoBasesLocales(context),
+                                  icon: const Icon(Icons.storage),
+                                  label:
+                                      const Text('Estado de la base de datos'),
                                 ),
                               ),
                             ],
