@@ -1,13 +1,13 @@
-import 'package:aplicacion_ventas/models/cliente.dart';
+import 'package:aplicacion_ventas/models/clientebusqueda.dart';
 import 'package:flutter/material.dart';
 
-class BuscarCliente extends SearchDelegate<Cliente?> {
+class BuscarCliente extends SearchDelegate<ClienteBusquedaDto?> {
   BuscarCliente();
 
-  static Future<List<Cliente>> Function(String query)? _searcher;
+  static Future<List<ClienteBusquedaDto>> Function(String query)? _searcher;
 
   static void configure({
-    required Future<List<Cliente>> Function(String query) searcher,
+    required Future<List<ClienteBusquedaDto>> Function(String query) searcher,
   }) {
     _searcher = searcher;
   }
@@ -38,9 +38,7 @@ class BuscarCliente extends SearchDelegate<Cliente?> {
   }
 
   @override
-  Widget buildResults(BuildContext context) {
-    return _buildBody();
-  }
+  Widget buildResults(BuildContext context) => _buildBody();
 
   @override
   Widget buildSuggestions(BuildContext context) {
@@ -56,13 +54,8 @@ class BuscarCliente extends SearchDelegate<Cliente?> {
       return const _SearchUnavailable();
     }
 
-    final normalized = query.trim();
-    if (normalized.isEmpty) {
-      return const _SearchHint();
-    }
-
-    return FutureBuilder<List<Cliente>>(
-      future: searcher(normalized),
+    return FutureBuilder<List<ClienteBusquedaDto>>(
+      future: searcher(query.trim()),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -70,27 +63,30 @@ class BuscarCliente extends SearchDelegate<Cliente?> {
         if (snapshot.hasError) {
           return _SearchError(error: snapshot.error.toString());
         }
-        final clientes = snapshot.data ?? const <Cliente>[];
+        final clientes = snapshot.data ?? [];
         if (clientes.isEmpty) {
           return const _EmptyResults();
         }
+
         return ListView.separated(
-          padding: const EdgeInsets.symmetric(vertical: 8),
           itemCount: clientes.length,
           separatorBuilder: (_, __) => const Divider(height: 1),
           itemBuilder: (context, index) {
-            final cliente = clientes[index];
-            final subtitleParts = [cliente.direccion, cliente.comuna]
-                .whereType<String>()
-                .map((value) => value.trim())
-                .where((value) => value.isNotEmpty)
-                .toList();
+            final c = clientes[index];
+
+            final subtitle = [
+              if (c.destinoDescripcion != null &&
+                  c.destinoDescripcion!.isNotEmpty)
+                'Destino: ${c.destinoDescripcion}',
+              if (c.direccion.isNotEmpty) c.direccion,
+              if (c.comuna.isNotEmpty) c.comuna,
+            ].join(' · ');
+
             return ListTile(
-              title: Text(cliente.nombre),
-              subtitle: subtitleParts.isEmpty
-                  ? null
-                  : Text(subtitleParts.join(' · ')),
-              onTap: () => close(context, cliente),
+              leading: const Icon(Icons.person_outline),
+              title: Text(c.nombre),
+              subtitle: Text(subtitle),
+              onTap: () => close(context, c),
             );
           },
         );
@@ -103,76 +99,43 @@ class _SearchHint extends StatelessWidget {
   const _SearchHint();
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Escribe el nombre o código del cliente',
-        style: Theme.of(context).textTheme.bodyMedium,
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const Center(
+        child: Text('Escribe el nombre, RUT o destino del cliente'),
+      );
 }
 
 class _SearchUnavailable extends StatelessWidget {
   const _SearchUnavailable();
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'La búsqueda de clientes no está disponible.',
-        style: Theme.of(context).textTheme.bodyMedium,
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      const Center(child: Text('La búsqueda de clientes no está disponible.'));
 }
 
 class _EmptyResults extends StatelessWidget {
   const _EmptyResults();
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'No se encontraron clientes para tu búsqueda.',
-        style: Theme.of(context).textTheme.bodyMedium,
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      const Center(child: Text('No se encontraron clientes.'));
 }
 
 class _SearchError extends StatelessWidget {
   const _SearchError({required this.error});
-
   final String error;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48),
-            const SizedBox(height: 12),
-            Text(
-              'Ocurrió un error al buscar clientes.',
-              style: Theme.of(context).textTheme.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error,
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ],
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 48),
+              const SizedBox(height: 12),
+              Text('Error al buscar clientes: $error'),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 }

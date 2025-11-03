@@ -1,5 +1,6 @@
 import 'package:aplicacion_ventas/db/database_helper.dart';
 import 'package:aplicacion_ventas/models/cliente.dart';
+import 'package:aplicacion_ventas/models/clientebusqueda.dart';
 import 'package:aplicacion_ventas/presentation/widgets/busqueda_cliente.dart';
 import 'package:aplicacion_ventas/presentation/widgets/cart_item_tile.dart';
 import 'package:aplicacion_ventas/providers/cart_provider.dart';
@@ -17,7 +18,7 @@ class CartPage extends ConsumerStatefulWidget {
 }
 
 class _CartPageState extends ConsumerState<CartPage> {
-  Cliente? clienteSeleccionado;
+  ClienteBusquedaDto? clienteSeleccionado;
 
   Future<int> _obtenerProximoNumeroVenta() async {
     final db = await DatabaseHelper.openDatabaseFile('ventas.db');
@@ -52,7 +53,7 @@ class _CartPageState extends ConsumerState<CartPage> {
   }
 
   Future<void> _mostrarSelectorCliente(BuildContext context) async {
-    final cliente = await showSearch<Cliente?>(
+    final cliente = await showSearch<ClienteBusquedaDto?>(
       context: context,
       delegate: BuscarCliente(),
     );
@@ -216,8 +217,7 @@ class _CartPageState extends ConsumerState<CartPage> {
                                   }
                                 }
 
-                                final messenger =
-                                    ScaffoldMessenger.of(context);
+                                final messenger = ScaffoldMessenger.of(context);
                                 int numeroVenta;
                                 try {
                                   numeroVenta =

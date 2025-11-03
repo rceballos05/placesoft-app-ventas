@@ -10,6 +10,7 @@ import 'package:aplicacion_ventas/domain/entities/user.dart';
 import 'package:aplicacion_ventas/presentation/pages/agregar_cliente_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/agregar_destino_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/historial_page.dart';
+import 'package:aplicacion_ventas/presentation/pages/home_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/login.dart';
 import 'package:aplicacion_ventas/presentation/pages/modificar_cliente_page.dart';
 import 'package:aplicacion_ventas/presentation/pages/modificar_datos_page.dart';
@@ -136,11 +137,7 @@ class _PerfilState extends ConsumerState<Perfil>
             color: titleColor,
           ),
           onPressed: () {
-            if (clienteVenta == null) {
-              showSearch(context: context, delegate: BuscarCliente());
-            } else {
-              Navigator.pop(context);
-            }
+            Navigator.of(context).pushNamed(HomePage.routeName);
           },
         ),
         Expanded(

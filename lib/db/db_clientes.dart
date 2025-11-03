@@ -1,6 +1,7 @@
 import 'package:aplicacion_ventas/db/clientes_db.dart';
 import 'package:aplicacion_ventas/db/database_helper.dart';
 import 'package:aplicacion_ventas/models/cliente.dart';
+import 'package:aplicacion_ventas/models/clientebusqueda.dart';
 import 'package:aplicacion_ventas/models/mae_cliente.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -17,11 +18,11 @@ class DBClientes {
     return DBMaeClientes.insert(cliente);
   }
 
-  static Future<List<Cliente>> clienteSearch(String query) async {
+  static Future<List<ClienteBusquedaDto>> clienteSearch(String query) async {
     final db = await _openDb();
     try {
       final palabra = query.trim().toLowerCase();
-      final clientes = <Cliente>[];
+      final clientes = <ClienteBusquedaDto>[];
 
       if (palabra.isEmpty) {
         // Devuelve los primeros registros por defecto
@@ -30,20 +31,34 @@ class DBClientes {
           limit: 20,
           orderBy: "nombre ASC",
         );
-        return result.map((e) => Cliente.fromMap(e)).toList();
+        return result.map((e) => ClienteBusquedaDto.fromMap(e)).toList();
       }
 
       // Búsqueda flexible: coincide en cualquier parte del nombre o rut
       final result = await db.rawQuery('''
-        SELECT * FROM mae_clientes
-        WHERE nombre LIKE ?
-           OR rut LIKE ?
-        ORDER BY nombre ASC
-        LIMIT 50
-      ''', ['%${palabra.toUpperCase()}%', '%${palabra.toUpperCase()}%']);
+    SELECT 
+      c.rut, 
+      c.nombre, 
+      c.direccion,
+      c.comuna,
+      c.ciudad,
+      d.codigo,
+      d.descripcion,
+      d.nombre_contacto,
+      d.fono_contacto,
+      d.email_contacto
+    FROM mae_clientes c
+    LEFT JOIN mae_clientes_destinos d 
+      ON c.rut = d.cliente
+    WHERE 
+      c.nombre LIKE ? 
+      OR c.rut LIKE ? 
+      OR d.descripcion LIKE ?
+    ORDER BY c.nombre ASC
+  ''', ['%$query%', '%$query%', '%$query%']);
 
       for (final item in result) {
-        clientes.add(Cliente.fromMap(item));
+        clientes.add(ClienteBusquedaDto.fromMap(item));
       }
 
       return clientes;
