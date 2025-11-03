@@ -61,7 +61,7 @@ class SyncRemoteDataSource {
   /// Retrieves the synchronization status for the provided [prefix].
   Future<RemoteInitialSyncStatus> fetchInitialSyncStatus({required String prefix}) async {
     final normalizedPrefix = prefix.trim().toLowerCase();
-    final uri = Uri.http(_baseUrl, '/api/sincronizacion/estado/$normalizedPrefix');
+    final uri = Uri.http(_baseUrl, '/api/Sincronizacion/estado/$normalizedPrefix');
     developer.log('Consultando estado de sincronización inicial para $normalizedPrefix',
         name: 'SyncRemoteDataSource');
 
@@ -107,7 +107,7 @@ class SyncRemoteDataSource {
   Future<List<int>> downloadClientsDatabase({required String prefix}) async {
     final normalizedPrefix = prefix.trim().toLowerCase();
     final uri =
-        Uri.http(_baseUrl, '/api/sincronizacion/export-clientes/$normalizedPrefix');
+        Uri.http(_baseUrl, '/api/Sincronizacion/export-clientes/$normalizedPrefix');
     return _downloadDatabase(uri: uri, databaseName: 'clientes');
   }
 
@@ -115,7 +115,7 @@ class SyncRemoteDataSource {
   Future<List<int>> downloadProductsDatabase({required String prefix}) async {
     final normalizedPrefix = prefix.trim().toLowerCase();
     final uri =
-        Uri.http(_baseUrl, '/api/sincronizacion/export-productos/$normalizedPrefix');
+        Uri.http(_baseUrl, '/api/Sincronizacion/export-productos/$normalizedPrefix');
     return _downloadDatabase(uri: uri, databaseName: 'productos');
   }
 
