@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:aplicacion_ventas/db/productos.dart';
 import 'package:aplicacion_ventas/models/producto.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DBProductos {
@@ -81,8 +82,10 @@ class DBProductos {
       return cachedPath;
     }
 
+    final documentsDirectory = await getApplicationDocumentsDirectory();
     final databasesPath = await getDatabasesPath();
     final candidates = <String>{
+      p.join(documentsDirectory.path, 'productos.db'),
       p.join(databasesPath, 'productos.db'),
     };
 

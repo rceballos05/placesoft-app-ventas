@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:line_awesome_flutter/line_awesome_flutter.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// Home screen showing the catalogue with a modern, responsive layout.
@@ -217,10 +218,14 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   Future<String> _resolveProductsDatabasePath(LoginState state) async {
     final candidates = <String>[];
+    final documentsDirectory = await getApplicationDocumentsDirectory();
+    final documentsPath = p.join(documentsDirectory.path, 'productos.db');
     final cached = state.databasePath;
     if (cached != null && cached.isNotEmpty) {
       candidates.add(cached);
     }
+
+    candidates.add(documentsPath);
 
     final prefix = state.user?.prefijo;
     final normalizedPrefix = prefix?.trim().toLowerCase();

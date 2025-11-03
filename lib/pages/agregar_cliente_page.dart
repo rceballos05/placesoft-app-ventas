@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'package:aplicacion_ventas/application/providers/login_provider.dart';
@@ -214,6 +215,7 @@ class AgregarClienteController extends StateNotifier<AgregarClienteState> {
   Future<String> _resolveClientesDbPath() async {
     final loginState = _ref.read(loginControllerProvider);
     final prefix = (loginState.user?.prefijo ?? '').trim().toLowerCase();
+    final documentsDirectory = await getApplicationDocumentsDirectory();
     final basePath = await getDatabasesPath();
 
     final candidates = <String>[];
@@ -223,6 +225,7 @@ class AgregarClienteController extends StateNotifier<AgregarClienteState> {
       final cachedDirectory = File(cached).parent.path;
       candidates.add(p.join(cachedDirectory, 'clientes.db'));
     }
+    candidates.add(p.join(documentsDirectory.path, 'clientes.db'));
     if (prefix.isNotEmpty) {
       candidates.add(p.join(basePath, prefix, 'clientes.db'));
     }

@@ -13,6 +13,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -540,8 +541,11 @@ class LoginService {
 
   Future<String?> _resolveLocalDatabase(String prefix) async {
     final normalizedPrefix = prefix.trim().toLowerCase();
+    final documentsDirectory = await getApplicationDocumentsDirectory();
     final databasesPath = await getDatabasesPath();
     final candidates = <String>[
+      p.join(documentsDirectory.path, 'clientes.db'),
+      p.join(documentsDirectory.path, 'productos.db'),
       p.join(databasesPath, normalizedPrefix, 'clientes.db'),
       p.join(databasesPath, normalizedPrefix, 'productos.db'),
       p.join(databasesPath, '${normalizedPrefix}_local00.db'),
