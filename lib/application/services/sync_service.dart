@@ -298,11 +298,6 @@ class SyncService {
   }
 
   Future<String?> _obtenerPrefijoDesdeCache(String rut) async {
-    final cachedPrefix = await _loginService.getCachedPrefix(rut);
-    if (cachedPrefix != null) {
-      return cachedPrefix;
-    }
-
     try {
       final prefijo = await _loginService.obtenerPrefijo(rut);
       if (prefijo != null) {
