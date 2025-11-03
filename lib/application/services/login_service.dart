@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 
+import 'package:aplicacion_ventas/application/services/sync_service.dart';
 import 'package:aplicacion_ventas/core/utils/failure.dart';
 import 'package:aplicacion_ventas/core/utils/result.dart';
+import 'package:aplicacion_ventas/data/datasources/remote/sync_remote_datasource.dart';
 import 'package:aplicacion_ventas/domain/entities/user.dart';
 import 'package:aplicacion_ventas/utils/rut_utils.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -238,15 +240,12 @@ class LoginService {
         return null;
       }
       final data = items.first as Map<String, dynamic>;
-      final prefijo =
-          _stringFromValue(data['prefijo'])?.trim();
+      final prefijo = _stringFromValue(data['prefijo'])?.trim();
       caja = _stringFromValue(data['caja']) ??
           _stringFromValue(data['caja_doc']) ??
           "";
       descuento = _doubleFromValue(
-        data['maxDctoProducto'] ??
-            data['max_dcto'] ??
-            data['descuento'],
+        data['maxDctoProducto'] ?? data['max_dcto'] ?? data['descuento'],
         fallback: 0,
       );
       nombreUsuario = _stringFromValue(data['nombre']) ??
@@ -292,17 +291,14 @@ class LoginService {
         final responseRut = (item['rut'] as String?) ?? rut;
         final normalizedRut = RutUtils.toDatabaseFormat(responseRut);
         final responsePrefix = (item['prefijo'] as String?) ?? prefijo;
-        final responseNombre =
-            _stringFromValue(item['nombre']) ??
-                _stringFromValue(item['nombreUsuario']) ??
-                nombreUsuario;
+        final responseNombre = _stringFromValue(item['nombre']) ??
+            _stringFromValue(item['nombreUsuario']) ??
+            nombreUsuario;
         final cajaRsp = _stringFromValue(item['caja']) ??
             _stringFromValue(item['caja_doc']) ??
             caja;
         final maxDcto = _doubleFromValue(
-          item['maxDctoProducto'] ??
-              item['max_dcto'] ??
-              item['descuento'],
+          item['maxDctoProducto'] ?? item['max_dcto'] ?? item['descuento'],
           fallback: descuento,
         );
         _onlineUserCache = User(
@@ -419,49 +415,45 @@ class LoginService {
     }
   }
 
-  /// Ensures the local databases for the provided [prefijo] are available for offline mode.
   Future<void> asegurarBaseLocal(String prefijo) async {
     final normalizedPrefix = prefijo.trim().toLowerCase();
-    if (normalizedPrefix.isEmpty) {
-      throw Failure('Prefijo inválido para preparar base local');
-    }
-
     final databasesPath = await getDatabasesPath();
-    await _copyAssetIfNeeded(
-        'assets/database/login.db', p.join(databasesPath, 'login.db'),
-        required: true);
+    final clientesPath =
+        File(p.join(databasesPath, normalizedPrefix, 'clientes.db'));
+    final productosPath =
+        File(p.join(databasesPath, normalizedPrefix, 'productos.db'));
 
-    final prefixDir = Directory(p.join(databasesPath, normalizedPrefix));
-    if (!await prefixDir.exists()) {
-      await prefixDir.create(recursive: true);
-    }
-
-    final assetCandidates = <String>[
-      'assets/database/$normalizedPrefix/clientes.db',
-      'assets/database/$normalizedPrefix/productos.db',
-      'assets/database/${normalizedPrefix}_local00.db',
-    ];
-
-    var copiedAny = false;
-    for (final asset in assetCandidates) {
-      final destination = p.join(prefixDir.path, p.basename(asset));
-      final copied = await _copyAssetIfNeeded(asset, destination);
-      copiedAny = copiedAny || copied;
-    }
-
-    for (final asset in <String>[
-      'assets/database/ventas.db',
-      'assets/database/rollo.db'
-    ]) {
-      final destination = p.join(databasesPath, p.basename(asset));
-      await _copyAssetIfNeeded(asset, destination);
-    }
-
-    if (!copiedAny) {
-      developer.log('No se encontró base local para $prefijo',
+    // Si ya existen ambas bases, no hace falta copiar nada
+    if (await clientesPath.exists() && await productosPath.exists()) {
+      developer.log('Bases locales ya existen para $normalizedPrefix',
           name: 'LoginService');
-      throw Failure('Modo offline no disponible');
+      return;
     }
+
+    developer.log('Bases locales no encontradas, iniciando descarga remota...',
+        name: 'LoginService');
+
+    // Descarga a través del SyncService (asumiendo que lo tienes accesible)
+    final syncService = SyncService(
+      remoteDataSource: SyncRemoteDataSource(),
+      loginService: this,
+    );
+
+    await syncService.ensureInitialDataAvailable(
+      status: InitialSyncStatus(
+        downloadData: true,
+        modoLocal: true,
+        prefix: normalizedPrefix,
+        alreadySynchronized: false,
+        missingPrefix: false,
+      ),
+      onProgress: (progress) {
+        developer.log(
+          'Descargando ${progress.step} ${progress.progress * 100}%',
+          name: 'LoginService',
+        );
+      },
+    );
   }
 
   /// Retrieves the cached prefix for the provided [rut].
@@ -498,7 +490,8 @@ class LoginService {
       for (final key in keysToRemove) {
         await prefs.remove(key);
       }
-      developer.log('Credenciales persistidas eliminadas (${keysToRemove.length})',
+      developer.log(
+          'Credenciales persistidas eliminadas (${keysToRemove.length})',
           name: 'LoginService');
     } catch (error, stackTrace) {
       developer.log('Error limpiando credenciales persistidas',
@@ -568,7 +561,8 @@ class LoginService {
     return destination;
   }
 
-  Future<void> _updateLocalLoginDatabase(String rut, String prefijo, String password,
+  Future<void> _updateLocalLoginDatabase(
+      String rut, String prefijo, String password,
       {required String caja, required double maxDcto}) async {
     final loginDbPath = await _prepareLoginDatabase();
     final db = await openDatabase(loginDbPath);

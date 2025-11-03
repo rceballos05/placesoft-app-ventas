@@ -306,8 +306,7 @@ class _PerfilState extends ConsumerState<Perfil>
                   ),
                   child: Icon(
                     LineAwesomeIcons.pen,
-                    color:
-                        isDark ? colorScheme.primary : colorScheme.secondary,
+                    color: isDark ? colorScheme.primary : colorScheme.secondary,
                     size: 18,
                   ),
                 ),
@@ -534,17 +533,17 @@ class _PerfilState extends ConsumerState<Perfil>
     });
 
     try {
-      final didDownload = await ref
-          .read(syncServiceProvider)
-          .ensureInitialDataAvailable(
-        onProgress: (progress) {
-          if (!mounted) return;
-          setState(() {
-            _downloadProgress = progress.progress;
-            _currentDownloadStep = progress.step;
-          });
-        },
-      );
+      // final didDownload = await ref
+      //     .read(syncServiceProvider)
+      //     .ensureInitialDataAvailable(
+      //   onProgress: (progress) {
+      //     if (!mounted) return;
+      //     setState(() {
+      //       _downloadProgress = progress.progress;
+      //       _currentDownloadStep = progress.step;
+      //     });
+      //   },
+      // );
 
       if (!mounted) return;
 
@@ -553,15 +552,15 @@ class _PerfilState extends ConsumerState<Perfil>
         _currentDownloadStep = InitialDownloadStep.completado;
       });
 
-      if (didDownload) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Bases locales descargadas correctamente'),
-            ),
-          );
-      }
+      // if (didDownload) {
+      //   ScaffoldMessenger.of(context)
+      //     ..hideCurrentSnackBar()
+      //     ..showSnackBar(
+      //       const SnackBar(
+      //         content: Text('Bases locales descargadas correctamente'),
+      //       ),
+      //     );
+      // }
 
       await _refreshInitialSyncStatus();
     } on Failure catch (failure) {

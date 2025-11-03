@@ -54,8 +54,6 @@ flutter:
     - assets/database/rollo.db
     - assets/database/ventas.db
     - assets/database/login.db
-    - assets/database/crvictoria/productos.db
-    - assets/database/crvictoria/clientes.db
 
     
   fonts:
